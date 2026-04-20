@@ -213,6 +213,18 @@
             display: none !important;
         }
 
+        /*
+         * Home menu (no ?tutorial=): hide Binventory on first paint before ebob-sim.js runs.
+         * Avoids a flash of the emulator / “eBob” chrome when opening the troubleshooting menu.
+         */
+        html.ebob-initial-home-gate .page-wrap {
+            display: none !important;
+        }
+
+        html.ebob-initial-home-gate .tutorial-scenario-gate[hidden] {
+            display: grid !important;
+        }
+
         .tutorial-scenario-card {
             width: min(560px, 100%);
             background: #fff;
@@ -317,30 +329,134 @@
             cursor: pointer;
         }
 
+        /*
+         * Next/Finish: “press me” pop — no outline (reads as a harsh static ring). Scale + glow + brightness.
+         * translateZ(0) promotes its own compositor layer inside the transformed tooltip.
+         */
+        .ebob-tutorial-tooltip .ebob-tutorial-actions #ebobTutorialNext.ebob-tutorial-next--flash {
+            position: relative;
+            z-index: 2;
+            font-weight: 600;
+            transform: translateZ(0);
+            will-change: transform, box-shadow, filter;
+            animation: ebob-tutorial-next-pop 1.2s cubic-bezier(0.34, 1.45, 0.64, 1) infinite;
+        }
+
+        @keyframes ebob-tutorial-next-pop {
+            0%,
+            100% {
+                transform: translateZ(0) scale(1);
+                filter: brightness(1.02);
+                border-color: rgba(255, 255, 255, 0.5);
+                box-shadow:
+                    0 1px 3px rgba(0, 0, 0, 0.35),
+                    0 0 10px rgba(56, 189, 248, 0.35),
+                    0 0 22px rgba(59, 130, 246, 0.25);
+            }
+
+            18% {
+                transform: translateZ(0) scale(1.16);
+                filter: brightness(1.32);
+                border-color: rgba(255, 255, 255, 0.95);
+                box-shadow:
+                    0 4px 12px rgba(0, 0, 0, 0.35),
+                    0 0 20px rgba(125, 211, 252, 0.95),
+                    0 0 40px rgba(34, 211, 238, 0.55),
+                    0 0 56px rgba(59, 130, 246, 0.35);
+            }
+
+            32% {
+                transform: translateZ(0) scale(1.04);
+                filter: brightness(1.12);
+                border-color: rgba(255, 255, 255, 0.75);
+                box-shadow:
+                    0 2px 6px rgba(0, 0, 0, 0.3),
+                    0 0 14px rgba(125, 211, 252, 0.55),
+                    0 0 28px rgba(59, 130, 246, 0.3);
+            }
+
+            48% {
+                transform: translateZ(0) scale(1.1);
+                filter: brightness(1.22);
+                border-color: rgba(255, 255, 255, 0.88);
+                box-shadow:
+                    0 3px 10px rgba(0, 0, 0, 0.32),
+                    0 0 18px rgba(147, 197, 253, 0.85),
+                    0 0 36px rgba(59, 130, 246, 0.4);
+            }
+
+            62%,
+            70% {
+                transform: translateZ(0) scale(1);
+                filter: brightness(1.02);
+                border-color: rgba(255, 255, 255, 0.5);
+                box-shadow:
+                    0 1px 3px rgba(0, 0, 0, 0.35),
+                    0 0 10px rgba(56, 189, 248, 0.35),
+                    0 0 22px rgba(59, 130, 246, 0.25);
+            }
+        }
+
+        @keyframes ebob-tutorial-next-pop-static {
+            0%,
+            100% {
+                filter: brightness(1.05);
+                box-shadow: 0 0 12px rgba(125, 211, 252, 0.45);
+            }
+
+            50% {
+                filter: brightness(1.2);
+                box-shadow: 0 0 20px rgba(125, 211, 252, 0.75);
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .ebob-tutorial-tooltip .ebob-tutorial-actions #ebobTutorialNext.ebob-tutorial-next--flash {
+                animation: ebob-tutorial-next-pop-static 2s ease-in-out infinite;
+                will-change: auto;
+            }
+        }
+
         .ebob-tutorial-pointer {
             position: fixed;
             z-index: 2202;
-            font-size: 34px;
+            box-sizing: border-box;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            border: 3px solid #22c55e;
+            box-shadow:
+                0 0 0 3px rgba(34, 197, 94, 0.35),
+                0 4px 14px rgba(0, 0, 0, 0.28);
+            background: rgba(255, 255, 255, 0.12);
+            font-size: 28px;
+            line-height: 1;
             pointer-events: none;
-            text-shadow: 0 0 10px rgba(59, 130, 246, 0.85);
+            text-shadow: 0 0 8px rgba(59, 130, 246, 0.75);
             will-change: left, top, opacity;
-            transition: left 180ms ease-out, top 180ms ease-out, opacity 150ms ease-out;
+            transition:
+                left 220ms cubic-bezier(0.25, 0.1, 0.25, 1),
+                top 220ms cubic-bezier(0.25, 0.1, 0.25, 1),
+                opacity 160ms ease-out;
         }
 
         .ebob-tutorial-circle {
             position: fixed;
-            border: 3px solid #d82a27;
-            background: rgba(216, 42, 39, 0.16);
-            box-shadow: 0 0 0 2px rgba(216, 42, 39, 0.35);
+            border: 2px solid #c41e1e;
+            background: transparent;
+            box-shadow: none;
             z-index: 2201;
             pointer-events: none;
             will-change: left, top, width, height, opacity;
             transition:
-                left 180ms ease-out,
-                top 180ms ease-out,
-                width 180ms ease-out,
-                height 180ms ease-out,
-                opacity 150ms ease-out;
+                left 220ms cubic-bezier(0.25, 0.1, 0.25, 1),
+                top 220ms cubic-bezier(0.25, 0.1, 0.25, 1),
+                width 220ms cubic-bezier(0.25, 0.1, 0.25, 1),
+                height 220ms cubic-bezier(0.25, 0.1, 0.25, 1),
+                opacity 160ms ease-out;
         }
 
         .ebob-tutorial-circle.is-circle {
@@ -985,10 +1101,18 @@
             opacity: 0.75;
         }
 
+        /* Inner label — shrink-wraps to text so highlights fit the word, not the whole grid cell. */
+        .vessel .vessel-status-text {
+            display: inline;
+        }
+
         /* Vessel.vb — lblStatusValue ForeColor Red for "Database Read Only" */
         .vessel .vessel-status-val.vessel-status-readonly {
-            color: #c00 !important;
+            color: #cc0000 !important;
             font-weight: 700;
+        }
+        .vessel .vessel-status-val.vessel-status-readonly .vessel-status-text {
+            color: #cc0000 !important;
         }
 
         .menu-strip .menu-btn-disabled {
@@ -2505,6 +2629,12 @@
             text-overflow: ellipsis;
             white-space: nowrap;
             color: #000;
+        }
+
+        /* Inline text — tutorial highlight uses span bounds (text end), not full column width. */
+        #backdropServicesMsc .svc-msc-table tbody td .svc-msc-name-text,
+        #backdropServicesMsc .svc-msc-table tbody td .svc-msc-desc-text {
+            display: inline;
         }
 
         .svc-msc-table tbody tr.svc-row {
@@ -9598,6 +9728,18 @@
     </style>
 </head>
 <body>
+    <script>
+        (function () {
+            try {
+                var t = new URLSearchParams(window.location.search || "").get("tutorial");
+                if (t == null || String(t).trim() === "") {
+                    document.documentElement.classList.add("ebob-initial-home-gate");
+                }
+            } catch (e) {
+                document.documentElement.classList.add("ebob-initial-home-gate");
+            }
+        })();
+    </script>
     <div id="tutorialScenarioGate" class="tutorial-scenario-gate" hidden aria-hidden="true">
         <div class="tutorial-scenario-card">
             <h2>Binventory Troubleshooting</h2>
@@ -9776,32 +9918,32 @@
                         </div>
                     </div>
                     <div class="win-search-panel" id="winSearchPanelServices" hidden>
-                        <div class="win-search-split">
-                            <div class="win-search-left">
-                                <div class="win-search-cat">Best match</div>
-                                <button type="button" class="win-search-hit" id="winSearchHitServices" data-sim-search="services">
-                                    <span class="win-search-hit-ico" aria-hidden="true">
-                                        <svg viewBox="0 0 24 24"><path d="M12 15.5A3.5 3.5 0 018.5 12 3.5 3.5 0 0112 8.5a3.5 3.5 0 013.5 3.5 3.5 3.5 0 01-3.5 3.5zm7.94-1.4l-1.42-1.18a6 6 0 00-.11-2.84l1.42-1.18a1 1 0 00.23-1.28l-1-1.73a1 1 0 00-1.28-.23l-1.68.98a6 6 0 00-2.46-1.42l-.26-1.9A1 1 0 0015 2h-2a1 1 0 00-.99.84l-.26 1.9a6 6 0 00-2.46 1.42l-1.68-.98a1 1 0 00-1.28.23l-1 1.73a1 1 0 00.23 1.28l1.42 1.18a6 6 0 000 2.84l-1.42 1.18a1 1 0 00-.23 1.28l1 1.73a1 1 0 001.28.23l1.68-.98a6 6 0 002.46 1.42l.26 1.9a1 1 0 00.99.84h2a1 1 0 00.99-.84l.26-1.9a6 6 0 002.46-1.42l1.68.98a1 1 0 001.28-.23l1-1.73a1 1 0 00-.23-1.28z"/></svg>
-                                    </span>
-                                    <span>
-                                        <div>Services</div>
-                                        <div class="win-search-hit-meta">System</div>
-                                    </span>
-                                </button>
-                                <div class="win-search-blank-below" aria-hidden="true"></div>
-                            </div>
-                            <div class="win-search-detail">
-                                <div class="win-search-detail-ico" aria-hidden="true">
+                    <div class="win-search-split">
+                        <div class="win-search-left">
+                            <div class="win-search-cat">Best match</div>
+                            <button type="button" class="win-search-hit" id="winSearchHitServices" data-sim-search="services">
+                                <span class="win-search-hit-ico" aria-hidden="true">
                                     <svg viewBox="0 0 24 24"><path d="M12 15.5A3.5 3.5 0 018.5 12 3.5 3.5 0 0112 8.5a3.5 3.5 0 013.5 3.5 3.5 3.5 0 01-3.5 3.5zm7.94-1.4l-1.42-1.18a6 6 0 00-.11-2.84l1.42-1.18a1 1 0 00.23-1.28l-1-1.73a1 1 0 00-1.28-.23l-1.68.98a6 6 0 00-2.46-1.42l-.26-1.9A1 1 0 0015 2h-2a1 1 0 00-.99.84l-.26 1.9a6 6 0 00-2.46 1.42l-1.68-.98a1 1 0 00-1.28.23l-1 1.73a1 1 0 00.23 1.28l1.42 1.18a6 6 0 000 2.84l-1.42 1.18a1 1 0 00-.23 1.28l1 1.73a1 1 0 001.28.23l1.68-.98a6 6 0 002.46 1.42l.26 1.9a1 1 0 00.99.84h2a1 1 0 00.99-.84l.26-1.9a6 6 0 002.46-1.42l1.68.98a1 1 0 001.28-.23l1-1.73a1 1 0 00-.23-1.28z"/></svg>
-                                </div>
-                                <h3>Services</h3>
-                                <p class="win-search-detail-sub">System</p>
-                                <div class="win-search-actions">
-                                    <button type="button" data-sim-svc="open"><span aria-hidden="true">↗</span> Open</button>
-                                    <button type="button" data-sim-svc="admin"><span aria-hidden="true">🛡</span> Run as administrator</button>
-                                    <button type="button" data-sim-svc="loc"><span aria-hidden="true">📁</span> Open file location</button>
-                                    <button type="button" data-sim-svc="pstart"><span aria-hidden="true">📌</span> Pin to Start</button>
-                                    <button type="button" data-sim-svc="ptask"><span aria-hidden="true">📌</span> Pin to taskbar</button>
+                                </span>
+                                <span>
+                                    <div>Services</div>
+                                    <div class="win-search-hit-meta">System</div>
+                                </span>
+                            </button>
+                            <div class="win-search-blank-below" aria-hidden="true"></div>
+                        </div>
+                        <div class="win-search-detail">
+                            <div class="win-search-detail-ico" aria-hidden="true">
+                                <svg viewBox="0 0 24 24"><path d="M12 15.5A3.5 3.5 0 018.5 12 3.5 3.5 0 0112 8.5a3.5 3.5 0 013.5 3.5 3.5 3.5 0 01-3.5 3.5zm7.94-1.4l-1.42-1.18a6 6 0 00-.11-2.84l1.42-1.18a1 1 0 00.23-1.28l-1-1.73a1 1 0 00-1.28-.23l-1.68.98a6 6 0 00-2.46-1.42l-.26-1.9A1 1 0 0015 2h-2a1 1 0 00-.99.84l-.26 1.9a6 6 0 00-2.46 1.42l-1.68-.98a1 1 0 00-1.28.23l-1 1.73a1 1 0 00.23 1.28l1.42 1.18a6 6 0 000 2.84l-1.42 1.18a1 1 0 00-.23 1.28l1 1.73a1 1 0 001.28.23l1.68-.98a6 6 0 002.46 1.42l.26 1.9a1 1 0 00.99.84h2a1 1 0 00.99-.84l.26-1.9a6 6 0 002.46-1.42l1.68.98a1 1 0 001.28-.23l1-1.73a1 1 0 00-.23-1.28z"/></svg>
+                            </div>
+                            <h3>Services</h3>
+                            <p class="win-search-detail-sub">System</p>
+                            <div class="win-search-actions">
+                                <button type="button" data-sim-svc="open"><span aria-hidden="true">↗</span> Open</button>
+                                <button type="button" data-sim-svc="admin"><span aria-hidden="true">🛡</span> Run as administrator</button>
+                                <button type="button" data-sim-svc="loc"><span aria-hidden="true">📁</span> Open file location</button>
+                                <button type="button" data-sim-svc="pstart"><span aria-hidden="true">📌</span> Pin to Start</button>
+                                <button type="button" data-sim-svc="ptask"><span aria-hidden="true">📌</span> Pin to taskbar</button>
                                 </div>
                             </div>
                         </div>
@@ -10109,7 +10251,7 @@
                                     <span> the service.</span>
                                 </div>
                             </div>
-                            <div class="svc-msc-table-wrap" tabindex="-1">
+                            <div class="svc-msc-table-wrap" id="svcMscTableScrollWrap" tabindex="-1">
                                 <table class="svc-msc-table" id="svcMscTable" aria-label="Services list">
                                     <thead>
                                         <tr>
@@ -10204,11 +10346,11 @@
                 <div class="login-form-inner">
                     <div class="login-form-fields">
                         <div class="login-row">
-                            <label for="uid">User ID:</label>
+                <label for="uid">User ID:</label>
                             <input type="text" id="uid" autocomplete="username" value="" spellcheck="false">
                         </div>
                         <div class="login-row">
-                            <label for="pw">Password:</label>
+                <label for="pw">Password:</label>
                             <input type="password" id="pw" autocomplete="current-password" value="" spellcheck="false">
                         </div>
                     </div>
@@ -10777,7 +10919,7 @@
                             </svg>
                         </button>
                     </span>
-                    <button type="button" class="modal-cap-close app-modal-cap-close" data-close-app title="Close" aria-label="Close">×</button>
+                <button type="button" class="modal-cap-close app-modal-cap-close" data-close-app title="Close" aria-label="Close">×</button>
                 </div>
             </header>
             <div class="body scroll" id="appModalBody"></div>
