@@ -29,10 +29,12 @@
     var EBOB_TUTORIAL_MODE_KEY = "ebobTutorialModeV1";
     var EBOB_TUTORIAL_STATE_KEY = "ebobTutorialScenarioStateV1";
     var EBOB_TUTORIAL_MODE_DB_READ_ONLY = "db-read-only";
+    var EBOB_TUTORIAL_MODE_PENDING_UNKNOWN = "pending-unknown-status";
     var EBOB_TUTORIAL_MODE_FREE = "free-mode";
     var SIM_WORKSTATION_IPV4 = "10.101.70.69";
     var activeTutorialMode = null;
     var dbReadOnlyTutorial = null;
+    var pendingUnknownTutorial = null;
     var dbTutorialGuardsBound = false;
 
     function persistEbobSvcSession() {
@@ -3281,6 +3283,7 @@
         }
         var modeFromQuery = sp ? String(sp.get("tutorial") || "").trim().toLowerCase() : "";
         if (modeFromQuery) {
+            document.documentElement.classList.remove("ebob-initial-home-gate");
             gate.hidden = true;
             gate.setAttribute("aria-hidden", "true");
             document.body.classList.remove("ebob-scenario-gate-open");
@@ -3289,6 +3292,7 @@
         document.body.classList.add("ebob-scenario-gate-open");
         gate.hidden = false;
         gate.setAttribute("aria-hidden", "false");
+        document.documentElement.classList.remove("ebob-initial-home-gate");
         if (gate.__ebobScenarioGateBound) return true;
         gate.__ebobScenarioGateBound = true;
         gate.addEventListener("click", function (e) {
@@ -3296,7 +3300,10 @@
             if (!btn) return;
             e.preventDefault();
             var mode = String(btn.getAttribute("data-scenario-mode") || "").trim().toLowerCase();
-            var implemented = mode === EBOB_TUTORIAL_MODE_DB_READ_ONLY || mode === EBOB_TUTORIAL_MODE_FREE;
+            var implemented =
+                mode === EBOB_TUTORIAL_MODE_DB_READ_ONLY ||
+                mode === EBOB_TUTORIAL_MODE_PENDING_UNKNOWN ||
+                mode === EBOB_TUTORIAL_MODE_FREE;
             if (!implemented) {
                 alert("This tutorial scenario is not built yet.");
                 return;
@@ -3353,14 +3360,143 @@
         });
     }
 
+    /**
+     * Pending/Unknown tutorial must use Modbus/RTU + NCR-80. Protocol A only allows SmartBob device types;
+     * ensureVesselFields would reset sensorTypeId 11 → 1, breaking the glitch demo (SmartBob “retracting”) and Next gating.
+     */
+    function pendingUnknownEnforceModbusNetworkAndNcrSensorTypes() {
+        if (activeTutorialMode !== EBOB_TUTORIAL_MODE_PENDING_UNKNOWN) return;
+        var puNcr = 11;
+        var net = {
+            id: "n1",
+            name: "COM1 Modbus RTU",
+            protocol: "Modbus/RTU",
+            interface: "COM1",
+            commParams: "9600,8,N,1",
+            siteId: "st1"
+        };
+        state.sensorNetworks = (state.sensorNetworks || []).filter(function (n) {
+            return n.siteId === "st1";
+        });
+        if (!state.sensorNetworks.length) {
+            state.sensorNetworks = [net];
+        } else {
+            state.sensorNetworks[0] = net;
+        }
+        ensureNetworkFields(state.sensorNetworks[0]);
+        state.vessels.forEach(function (v) {
+            if (!v || v.siteId !== "st1") return;
+            v.sensorNetworkId = "n1";
+            v.sensorTypeId = puNcr;
+        });
+    }
+
+    /** Pending / Unknown tutorial — single site, host IP matches workstation (no Database Read Only). */
+    function applyPendingUnknownTutorialScenario() {
+        state.sites = state.sites.filter(function (s) {
+            return s.id === "st1";
+        });
+        if (!state.sites.length) {
+            state.sites = [
+                {
+                    id: "st1",
+                    name: "Current Location",
+                    workstationSiteId: 1,
+                    serviceHostIp: SIM_WORKSTATION_IPV4,
+                    serviceHostPort: "8093",
+                    companyName: "Acme Manufacturing",
+                    streetAddress: "100 Industrial Pkwy",
+                    streetAddress2: "",
+                    city: "Minneapolis",
+                    state: "MN",
+                    zip: "55401",
+                    country: "USA",
+                    distanceUnitsId: "1"
+                }
+            ];
+        }
+        ensureSiteFields(state.sites[0]);
+        state.sites[0].workstationSiteId = 1;
+        state.sites[0].serviceHostIp = SIM_WORKSTATION_IPV4;
+        state.currentWorkstationSiteId = "st1";
+        state.sensorNetworks = (state.sensorNetworks || []).filter(function (n) {
+            return !n.siteId || n.siteId === "st1";
+        });
+        state.groups = (state.groups || []).filter(function (g) {
+            return !g.siteId || g.siteId === "st1";
+        });
+        state.schedules = (state.schedules || []).filter(function (s) {
+            return !s.siteId || s.siteId === "st1";
+        });
+        seedWorkspaceMainPlant();
+        pendingUnknownEnforceModbusNetworkAndNcrSensorTypes();
+        var puNcr = 11;
+        if (state.vessels[0]) {
+            state.vessels[0].name = "NCR-80 Unknown";
+            state.vessels[0].status = statusStringForDashboard(puNcr, 55);
+            state.vessels[0].tutorialPuGlitch = true;
+            delete state.vessels[0].tutorialPuStuck;
+        }
+        if (state.vessels[1]) {
+            state.vessels[1].name = "NCR-80 Pending";
+            state.vessels[1].status = statusStringForDashboard(puNcr, 90);
+            state.vessels[1].tutorialPuStuck = true;
+            delete state.vessels[1].tutorialPuGlitch;
+        }
+        state.vessels.forEach(function (v) {
+            if (!v || v.siteId !== "st1") return;
+            if (v.id === "v1" || v.id === "v2") return;
+            v.status = statusStringForDashboard(puNcr, 0);
+        });
+        state._puGlitchDemoDone = false;
+        state._puPostRestartResolved = false;
+        state._puAwaitingPostRestartReadOnlyAck = false;
+        delete state._puTutorialMeasureAllStarted;
+    }
+
+    function applyPendingUnknownPostRestartState(opts) {
+        opts = opts || {};
+        /* Tutorial recovery state after Services + client restart: connection restored and manual re-measure verifies both silos. */
+        state.ebobServicesRunning = true;
+        state.ebobSchedulerRunning = true;
+        state.vesselsReadOnly = false;
+        state._puPostRestartResolved = true;
+        pendingUnknownEnforceModbusNetworkAndNcrSensorTypes();
+        /* After services restart, all workstation-site silos read Unknown until measured (session restore can leave Ready/Pending). */
+        var ws = state.currentWorkstationSiteId || "st1";
+        state.vessels.forEach(function (v) {
+            if (!v) return;
+            if (v.siteId != null && v.siteId !== ws) return;
+            delete v.tutorialPuGlitch;
+            delete v.tutorialPuStuck;
+            var sid = parseInt(v.sensorTypeId, 10) || 11;
+            v.status = statusStringForDashboard(sid, 55);
+            if (v.id === "v1" || v.id === "v2") {
+                v.name = "NCR-80 Unknown";
+            }
+        });
+        saveState();
+        if (!opts.skipRefresh) {
+            refreshUI();
+        }
+    }
+
     function restoreTutorialScenarioSessionState() {
-        if (activeTutorialMode !== EBOB_TUTORIAL_MODE_DB_READ_ONLY) return false;
+        if (
+            activeTutorialMode !== EBOB_TUTORIAL_MODE_DB_READ_ONLY &&
+            activeTutorialMode !== EBOB_TUTORIAL_MODE_PENDING_UNKNOWN
+        ) {
+            return false;
+        }
         try {
             var raw = sessionStorage.getItem(EBOB_TUTORIAL_STATE_KEY);
             if (!raw) return false;
             var parsed = JSON.parse(raw);
             if (!parsed || !parsed.stateSnapshot) return false;
             state = Object.assign(state, parsed.stateSnapshot);
+            if (activeTutorialMode === EBOB_TUTORIAL_MODE_PENDING_UNKNOWN) {
+                state._puGlitchDemoDone = false;
+            }
             return true;
         } catch (e) {
             return false;
@@ -3368,7 +3504,12 @@
     }
 
     function persistTutorialScenarioSessionState() {
-        if (activeTutorialMode !== EBOB_TUTORIAL_MODE_DB_READ_ONLY) return;
+        if (
+            activeTutorialMode !== EBOB_TUTORIAL_MODE_DB_READ_ONLY &&
+            activeTutorialMode !== EBOB_TUTORIAL_MODE_PENDING_UNKNOWN
+        ) {
+            return;
+        }
         try {
             sessionStorage.setItem(
                 EBOB_TUTORIAL_STATE_KEY,
@@ -3402,6 +3543,8 @@
         resetStateToFactoryDefaults();
         if (activeTutorialMode === EBOB_TUTORIAL_MODE_DB_READ_ONLY) {
             applyDatabaseReadOnlyTutorialScenario();
+        } else if (activeTutorialMode === EBOB_TUTORIAL_MODE_PENDING_UNKNOWN) {
+            applyPendingUnknownTutorialScenario();
         } else {
             clearTutorialScenarioState();
         }
@@ -3615,6 +3758,20 @@
             }
             return;
         }
+        /* Run before SmartBob/C-100MB so tutorial flags always win even if device type was clamped wrong. */
+        if (
+            activeTutorialMode === EBOB_TUTORIAL_MODE_PENDING_UNKNOWN &&
+            !isPendingUnknownPostRestartPhaseActive()
+        ) {
+            if (v.tutorialPuGlitch) {
+                runPendingUnknownGlitchMeasurement(v, opts);
+                return;
+            }
+            if (v.tutorialPuStuck) {
+                runPendingUnknownStuckMeasurement(v, opts);
+                return;
+            }
+        }
         if (isSmartBobProtocolA(sid)) {
             runSmartBobProtocolAMeasurement(v, opts);
             return;
@@ -3624,6 +3781,70 @@
             return;
         }
         runGenericMeasurement(v, opts);
+    }
+
+    /** Simulates “eBob services glitch”: Pending flashes, then back to Unknown (NCR-80). */
+    function runPendingUnknownGlitchMeasurement(v, opts) {
+        opts = opts || {};
+        clearMeasureSimulation(v);
+        var sid = parseInt(v.sensorTypeId, 10) || 11;
+        v.status = statusStringForDashboard(sid, 90);
+        saveState();
+        renderGrid();
+        v._measureTimers = [
+            setTimeout(function () {
+                v.status = statusStringForDashboard(sid, 55);
+                state._puGlitchDemoDone = true;
+                saveState();
+                renderGrid();
+                v._measureTimers = null;
+                if (typeof opts.onDone === "function") opts.onDone();
+            }, 220)
+        ];
+    }
+
+    /** Pending forever — measurement never resolves to Ready. */
+    function runPendingUnknownStuckMeasurement(v, opts) {
+        opts = opts || {};
+        clearMeasureSimulation(v);
+        var sid = parseInt(v.sensorTypeId, 10) || 11;
+        v.status = statusStringForDashboard(sid, 90);
+        saveState();
+        renderGrid();
+        v._measureTimers = [
+            setTimeout(function () {
+                v.status = statusStringForDashboard(sid, 90);
+                v._measureTimers = null;
+                saveState();
+                renderGrid();
+                if (typeof opts.onDone === "function") opts.onDone();
+            }, 400)
+        ];
+    }
+
+    function isPendingUnknownPostRestartPhaseActive() {
+        if (activeTutorialMode !== EBOB_TUTORIAL_MODE_PENDING_UNKNOWN) return false;
+        if (state._puPostRestartResolved) return true;
+        if (!pendingUnknownTutorial || !pendingUnknownTutorial.active || pendingUnknownTutorial.completed) {
+            return false;
+        }
+        /* Step 18+ — post-restart verification (first silo measure + Measure All). */
+        return pendingUnknownTutorial.stepIndex >= 17;
+    }
+
+    /** Pending/Unknown tutorial: after Measure All, every measurable vessel on the workstation site should be Ready. */
+    function pendingUnknownAllMeasurableSiteVesselsReady() {
+        var siteId = state.currentWorkstationSiteId;
+        var any = false;
+        for (var i = 0; i < state.vessels.length; i++) {
+            var v = state.vessels[i];
+            if (!v || (v.siteId != null && v.siteId !== siteId)) continue;
+            var sid = parseInt(v.sensorTypeId, 10);
+            if (sid === 14 || sid === 15) continue;
+            any = true;
+            if (String(v.status || "").trim().toLowerCase() !== "ready") return false;
+        }
+        return any;
     }
 
     function measureAll() {
@@ -3739,9 +3960,9 @@
             "</span>" +
             "<span>Status:</span><span class=\"vessel-status-val" +
             statusCls +
-            "\">" +
+            "\"><span class=\"vessel-status-text\">" +
             escapeHtml(statusText) +
-            "</span>" +
+            "</span></span>" +
             "</div>" +
             '<label class="chk-row"><input type="checkbox" data-vessel-action="headroom"' +
             headChecked +
@@ -4149,6 +4370,15 @@
 
     function exitToSimDesktop() {
         persistTutorialScenarioSessionState();
+        if (activeTutorialMode === EBOB_TUTORIAL_MODE_DB_READ_ONLY && isGuidedTutorialLockActive()) {
+            var gtExit = guidedGetActiveTutorialState();
+            if (gtExit) {
+                var stExit = gtExit.steps[gtExit.stepIndex];
+                if (stExit && stExit.dbRoRequireRecordedExit) {
+                    state._dbRoTutorialClosedAppForStep16 = true;
+                }
+            }
+        }
         closeAppModal();
         closeNonAppBackdropsForExit();
         closeMenus();
@@ -4185,10 +4415,23 @@
                     resetStateToFactoryDefaults();
                     if (activeTutorialMode === EBOB_TUTORIAL_MODE_DB_READ_ONLY) {
                         applyDatabaseReadOnlyTutorialScenario();
+                    } else if (activeTutorialMode === EBOB_TUTORIAL_MODE_PENDING_UNKNOWN) {
+                        applyPendingUnknownTutorialScenario();
                     }
+                } else if (activeTutorialMode === EBOB_TUTORIAL_MODE_PENDING_UNKNOWN) {
+                    pendingUnknownEnforceModbusNetworkAndNcrSensorTypes();
                 }
                 applyEbobSvcSession();
                 syncReadOnlyLatchOnStartup();
+                /* Pending/Unknown: relaunch after Close + Relaunch sets full grid (Unknown / Ready path); mid-tutorial desktop exit before that uses the flag. */
+                if (activeTutorialMode === EBOB_TUTORIAL_MODE_PENDING_UNKNOWN) {
+                    if (state._puAwaitingPostRestartReadOnlyAck) {
+                        state._puAwaitingPostRestartReadOnlyAck = false;
+                        applyPendingUnknownPostRestartState({ skipRefresh: true });
+                    } else if (restoredScenarioState && state._puPostRestartResolved) {
+                        applyPendingUnknownPostRestartState({ skipRefresh: true });
+                    }
+                }
                 var shell = document.getElementById("appShell");
                 var tbEbob = document.getElementById("taskbarBtnEbob");
                 if (shell) shell.classList.remove("app-shell--minimized");
@@ -11998,9 +12241,18 @@
                     selector: ".title-btns button[data-sim='close']",
                     highlightShape: "rect",
                     pointerSide: "left",
+                    /* advanceWhen used to be “desktop mode only”, which could match without a real Exit; require exitToSimDesktop(). */
+                    dbRoRequireRecordedExit: true,
+                    onEnter: function () {
+                        state._dbRoTutorialClosedAppForStep16 = false;
+                    },
                     advanceWhen: function () {
                         var wrap = document.getElementById("pageWrap");
-                        return !!(wrap && wrap.classList.contains("page-wrap--desktop-mode"));
+                        return !!(
+                            wrap &&
+                            wrap.classList.contains("page-wrap--desktop-mode") &&
+                            state._dbRoTutorialClosedAppForStep16
+                        );
                     }
                 },
                 {
@@ -12009,10 +12261,17 @@
                     selector: "#desktopEbobIcon",
                     highlightShape: "rect",
                     pointerSide: "left",
+                    onEnter: function () {
+                        var wrap = document.getElementById("pageWrap");
+                        state._dbRoStep17BeganOnDesktop = !!(
+                            wrap && wrap.classList.contains("page-wrap--desktop-mode")
+                        );
+                    },
                     advanceWhen: function () {
                         var wrap = document.getElementById("pageWrap");
                         var isDesktop = !!(wrap && wrap.classList.contains("page-wrap--desktop-mode"));
                         if (isDesktop) return false;
+                        if (!state._dbRoStep17BeganOnDesktop) return false;
                         return !document.querySelector(".vessel-status-readonly");
                     }
                 },
@@ -12068,6 +12327,525 @@
         return dbReadOnlyTutorial;
     }
 
+    function getSvcMscBackdropEl() {
+        return document.getElementById("backdropServicesMsc");
+    }
+
+    function isSvcMscVisible() {
+        var bd = getSvcMscBackdropEl();
+        return !!(bd && bd.classList.contains("show"));
+    }
+
+    /** Center eBob rows in the Services list and prevent scrolling (wheel / touch / scroll offset). */
+    function installPendingUnknownServicesScrollLock() {
+        var wrap = document.getElementById("svcMscTableScrollWrap");
+        if (!wrap) return;
+        if (wrap.__puScrollLockActive) {
+            pendingUnknownSnapServicesScrollToEbob();
+            return;
+        }
+        wrap.__puScrollLockActive = true;
+
+        function lockToIdeal() {
+            if (wrap.__puLockIdeal == null) return;
+            wrap.scrollTop = wrap.__puLockIdeal;
+        }
+
+        function onWheelTouch(e) {
+            e.preventDefault();
+            lockToIdeal();
+        }
+
+        function onScroll() {
+            lockToIdeal();
+        }
+
+        wrap.addEventListener("scroll", onScroll, { passive: true });
+        wrap.addEventListener("wheel", onWheelTouch, { passive: false });
+        wrap.addEventListener("touchmove", onWheelTouch, { passive: false });
+
+        wrap.__puScrollLockOnScroll = onScroll;
+        wrap.__puScrollLockOnWheelTouch = onWheelTouch;
+
+        pendingUnknownSnapServicesScrollToEbob();
+        window.requestAnimationFrame(function () {
+            pendingUnknownSnapServicesScrollToEbob();
+        });
+    }
+
+    function pendingUnknownSnapServicesScrollToEbob() {
+        var wrap = document.getElementById("svcMscTableScrollWrap");
+        if (!wrap) return;
+        var row = wrap.querySelector('tbody tr[data-service-id="ebob-engine"]');
+        if (!row) return;
+        var target = Math.max(
+            0,
+            row.offsetTop - wrap.clientHeight / 2 + row.offsetHeight / 2
+        );
+        wrap.scrollTop = target;
+        wrap.__puLockIdeal = target;
+    }
+
+    function clearPendingUnknownServicesScrollLock() {
+        var wrap = document.getElementById("svcMscTableScrollWrap");
+        if (!wrap) return;
+        if (wrap.__puScrollLockOnScroll) {
+            wrap.removeEventListener("scroll", wrap.__puScrollLockOnScroll);
+        }
+        if (wrap.__puScrollLockOnWheelTouch) {
+            wrap.removeEventListener("wheel", wrap.__puScrollLockOnWheelTouch);
+            wrap.removeEventListener("touchmove", wrap.__puScrollLockOnWheelTouch);
+        }
+        wrap.__puScrollLockActive = false;
+        wrap.__puLockIdeal = null;
+        wrap.__puScrollLockOnScroll = null;
+        wrap.__puScrollLockOnWheelTouch = null;
+    }
+
+    /** Name column text only (for “locate Engine + Scheduler” step; avoids spanning into Description column / off-screen). */
+    function getSvcMscServiceRowNameOnlyRawRect(serviceId) {
+        var tr = document.querySelector(
+            '#backdropServicesMsc tr[data-service-id="' + serviceId + '"]'
+        );
+        if (!tr || !isVisibleForTutorial(tr)) return null;
+        var nameEl = tr.querySelector("td:nth-child(1) .svc-msc-name-text");
+        if (nameEl && isVisibleForTutorial(nameEl)) {
+            var r = nameEl.getBoundingClientRect();
+            return { left: r.left, top: r.top, width: r.width, height: r.height };
+        }
+        var td = tr.querySelector("td:nth-child(1)");
+        if (td && isVisibleForTutorial(td)) {
+            var r2 = td.getBoundingClientRect();
+            return { left: r2.left, top: r2.top, width: r2.width, height: r2.height };
+        }
+        return null;
+    }
+
+    /** Padded highlight for right-click / row steps: Name column only (same tight box as locate step). */
+    function getSvcMscServiceRowHighlightRect(serviceId) {
+        var r = getSvcMscServiceRowNameOnlyRawRect(serviceId);
+        if (!r) return null;
+        var pad = 4;
+        return {
+            left: r.left - pad,
+            top: r.top - pad,
+            width: r.width + pad * 2,
+            height: r.height + pad * 2
+        };
+    }
+
+    /** Single outer box around eBob Engine + eBob Scheduler **name** cells only (not Description column). */
+    function getSvcMscEbobEngineSchedulerPairHighlightRect() {
+        var ra = getSvcMscServiceRowNameOnlyRawRect("ebob-engine");
+        var rb = getSvcMscServiceRowNameOnlyRawRect("ebob-scheduler");
+        if (!ra || !rb) return null;
+        var left = Math.min(ra.left, rb.left);
+        var top = Math.min(ra.top, rb.top);
+        var right = Math.max(ra.left + ra.width, rb.left + rb.width);
+        var bottom = Math.max(ra.top + ra.height, rb.top + rb.height);
+        var pad = 4;
+        return {
+            left: left - pad,
+            top: top - pad,
+            width: right - left + pad * 2,
+            height: bottom - top + pad * 2
+        };
+    }
+
+    function getVesselStatusTextNormalized(vid) {
+        var v = findVessel(vid);
+        return v && v.status ? String(v.status).trim().toLowerCase() : "";
+    }
+
+    function ensurePendingUnknownTutorialState() {
+        if (pendingUnknownTutorial) return pendingUnknownTutorial;
+        pendingUnknownTutorial = {
+            active: false,
+            completed: false,
+            stepIndex: 0,
+            enteredStepIndex: -1,
+            timerId: null,
+            autoStepTimerId: null,
+            pendingAdvanceStepIndex: -1,
+            pendingAdvanceSinceMs: 0,
+            steps: [
+                {
+                    title: "Step 1a",
+                    message:
+                        'Click Measure on the silo that shows "Unknown".',
+                    selector: '.vessel[data-vessel-id="v1"] [data-vessel-action="measure"]',
+                    highlightShape: "rect",
+                    pointerSide: "left",
+                    /* Session restore can leave _puGlitchDemoDone true while the tutorial restarts at 1a — clear on entry. */
+                    onEnter: function () {
+                        state._puGlitchDemoDone = false;
+                    },
+                    advanceWhen: function () {
+                        return !!state._puGlitchDemoDone;
+                    },
+                    advanceDelayMs: 400
+                },
+                {
+                    title: "Step 1b",
+                    message:
+                        'Notice: status flashed Pending, then returned to Unknown. Click Next.',
+                    selector: '.vessel[data-vessel-id="v1"] .vessel-status-text',
+                    highlightShape: "rect",
+                    pointerSide: "left",
+                    requiresNext: true
+                },
+                {
+                    title: "Step 2",
+                    message:
+                        'Notice how this silo is Pending? We will address this as well. Both issues have the same resolution. Click Next.',
+                    selector: '.vessel[data-vessel-id="v2"] .vessel-status-text',
+                    highlightShape: "rect",
+                    pointerSide: "left",
+                    requiresNext: true
+                },
+                {
+                    title: "Step 3",
+                    message: "Click Start.",
+                    selector: "#winStartBtn",
+                    advanceWhen: function () {
+                        var sm = document.getElementById("winStartMenu");
+                        return !!(sm && !sm.hidden);
+                    }
+                },
+                {
+                    title: "Step 4",
+                    message: 'Type "services" in the search box.',
+                    selector: "#winStartSearch",
+                    highlightShape: "rect",
+                    pointerSide: "left",
+                    inputSelector: "#winStartSearch",
+                    advanceWhen: function () {
+                        var inp = document.getElementById("winStartSearch");
+                        var panel = document.getElementById("winSearchPanelServices");
+                        var q = String(inp && inp.value ? inp.value : "").trim().toLowerCase();
+                        return !!(panel && !panel.hidden && (q === "services" || q.indexOf("services") === 0));
+                    }
+                },
+                {
+                    title: "Step 5",
+                    message: 'Click "Run as administrator" (do not use Open — elevated Services is required).',
+                    selector: '#winSearchPanelServices [data-sim-svc="admin"]',
+                    highlightShape: "rect",
+                    pointerSide: "left",
+                    blockSimSvcOpen: true,
+                    advanceWhen: function () {
+                        var uac = document.getElementById("backdropUac");
+                        return !!(uac && uac.classList.contains("show"));
+                    }
+                },
+                {
+                    title: "Step 6",
+                    message:
+                        "User Account Control: click Yes. On some systems, admin rights may require signing in.",
+                    selector: "#uacYes",
+                    highlightShape: "rect",
+                    pointerSide: "left",
+                    advanceWhen: function () {
+                        return isSvcMscVisible();
+                    }
+                },
+                {
+                    title: "Step 7",
+                    message:
+                        "Locate eBob Engine and eBob Scheduler Services. When both are highlighted in the box, click Next.",
+                    highlightShape: "rect",
+                    pointerSide: "left",
+                    selector: "#ebobTutorialNext",
+                    getTargetRect: function () {
+                        return getSvcMscEbobEngineSchedulerPairHighlightRect();
+                    },
+                    requiresNext: true,
+                    blockSvcMscTableRows: true,
+                    restrictSvcMscToCtxMenuFlow: true,
+                    onEnter: function () {
+                        installPendingUnknownServicesScrollLock();
+                    }
+                },
+                {
+                    title: "Step 8",
+                    message:
+                        "Right-click the eBob Engine Service row.",
+                    highlightShape: "rect",
+                    pointerSide: "left",
+                    selector: '#backdropServicesMsc tr[data-service-id="ebob-engine"]',
+                    getTargetRect: function () {
+                        return getSvcMscServiceRowHighlightRect("ebob-engine");
+                    },
+                    blockSvcMscTableRows: true,
+                    svcCtxRowIdForRightClick: "ebob-engine",
+                    restrictSvcMscToCtxMenuFlow: true,
+                    advanceWhen: function () {
+                        var menu = document.getElementById("svcCtxMenu");
+                        return !!(menu && !menu.hidden);
+                    }
+                },
+                {
+                    title: "Step 9",
+                    message: "Click Stop.",
+                    highlightShape: "rect",
+                    pointerSide: "left",
+                    selector: "#svcCtxStop",
+                    getTargetRect: function () {
+                        var el = document.getElementById("svcCtxStop");
+                        if (isVisibleForTutorial(el)) return el;
+                        return getSvcMscServiceRowHighlightRect("ebob-engine");
+                    },
+                    blockSvcMscTableRows: true,
+                    restrictSvcMscToCtxMenuFlow: true,
+                    advanceWhen: function () {
+                        return !state.ebobServicesRunning;
+                    }
+                },
+                {
+                    title: "Step 10",
+                    message: "Right-click eBob Engine Service again.",
+                    highlightShape: "rect",
+                    pointerSide: "left",
+                    selector: '#backdropServicesMsc tr[data-service-id="ebob-engine"]',
+                    getTargetRect: function () {
+                        return getSvcMscServiceRowHighlightRect("ebob-engine");
+                    },
+                    blockSvcMscTableRows: true,
+                    svcCtxRowIdForRightClick: "ebob-engine",
+                    restrictSvcMscToCtxMenuFlow: true,
+                    advanceWhen: function () {
+                        var menu = document.getElementById("svcCtxMenu");
+                        return !!(menu && !menu.hidden);
+                    }
+                },
+                {
+                    title: "Step 11",
+                    message: "Click Start.",
+                    highlightShape: "rect",
+                    pointerSide: "left",
+                    selector: "#svcCtxStart",
+                    getTargetRect: function () {
+                        var el = document.getElementById("svcCtxStart");
+                        if (isVisibleForTutorial(el)) return el;
+                        return getSvcMscServiceRowHighlightRect("ebob-engine");
+                    },
+                    blockSvcMscTableRows: true,
+                    restrictSvcMscToCtxMenuFlow: true,
+                    advanceWhen: function () {
+                        return !!state.ebobServicesRunning;
+                    }
+                },
+                {
+                    title: "Step 12",
+                    message: "Right-click eBob Scheduler Service.",
+                    highlightShape: "rect",
+                    pointerSide: "left",
+                    selector: '#backdropServicesMsc tr[data-service-id="ebob-scheduler"]',
+                    getTargetRect: function () {
+                        return getSvcMscServiceRowHighlightRect("ebob-scheduler");
+                    },
+                    blockSvcMscTableRows: true,
+                    svcCtxRowIdForRightClick: "ebob-scheduler",
+                    restrictSvcMscToCtxMenuFlow: true,
+                    advanceWhen: function () {
+                        var menu = document.getElementById("svcCtxMenu");
+                        return !!(menu && !menu.hidden);
+                    }
+                },
+                {
+                    title: "Step 13",
+                    message: "Click Start.",
+                    highlightShape: "rect",
+                    pointerSide: "left",
+                    selector: "#svcCtxStart",
+                    getTargetRect: function () {
+                        var el = document.getElementById("svcCtxStart");
+                        if (isVisibleForTutorial(el)) return el;
+                        return getSvcMscServiceRowHighlightRect("ebob-scheduler");
+                    },
+                    blockSvcMscTableRows: true,
+                    restrictSvcMscToCtxMenuFlow: true,
+                    advanceWhen: function () {
+                        return !!(state.ebobServicesRunning && state.ebobSchedulerRunning);
+                    }
+                },
+                {
+                    title: "Step 14",
+                    message: "Close the Services window (X).",
+                    selector: "#svcMscClose",
+                    highlightShape: "rect",
+                    pointerSide: "left",
+                    advanceWhen: function () {
+                        return !isSvcMscVisible();
+                    },
+                    advanceDelayMs: 220
+                },
+                {
+                    title: "Step 15",
+                    message:
+                        'Database Read Only displays after restarting eBob Services. Click Close and Relaunch eBob. Click Next to continue.',
+                    hideTutorialHighlight: true,
+                    requiresNext: true,
+                    onNext: function () {
+                        state._puAwaitingPostRestartReadOnlyAck = true;
+                        return true;
+                    }
+                },
+                {
+                    title: "Step 16",
+                    message: "Close Binventory — click X on the title bar, then you will relaunch from the desktop.",
+                    highlightShape: "rect",
+                    pointerSide: "left",
+                    selector: ".title-btns button[data-sim='close']",
+                    getTargetRect: function () {
+                        var wrap = document.getElementById("pageWrap");
+                        if (wrap && wrap.classList.contains("page-wrap--desktop-mode")) return null;
+                        var closeBtn = document.querySelector(".title-btns button[data-sim='close']");
+                        return isVisibleForTutorial(closeBtn) ? closeBtn : null;
+                    },
+                    onEnter: function () {
+                        clearPendingUnknownServicesScrollLock();
+                    },
+                    advanceWhen: function () {
+                        var wrap = document.getElementById("pageWrap");
+                        return !!(wrap && wrap.classList.contains("page-wrap--desktop-mode"));
+                    },
+                    advanceDelayMs: 160
+                },
+                {
+                    title: "Step 17",
+                    message: "Double-click eBob Icon to Launch.",
+                    highlightShape: "rect",
+                    pointerSide: "left",
+                    selector: "#desktopEbobIcon",
+                    getTargetRect: function () {
+                        var wrap = document.getElementById("pageWrap");
+                        if (!wrap || !wrap.classList.contains("page-wrap--desktop-mode")) return null;
+                        var icon = document.querySelector("#desktopEbobIcon");
+                        return isVisibleForTutorial(icon) ? icon : null;
+                    },
+                    advanceWhen: function () {
+                        var wrap = document.getElementById("pageWrap");
+                        return !!(wrap && !wrap.classList.contains("page-wrap--desktop-mode"));
+                    },
+                    advanceDelayMs: 220
+                },
+                {
+                    title: "Step 18",
+                    message:
+                        'After the workstation loads, click Measure on the vessel that used to show "Unknown".',
+                    highlightShape: "rect",
+                    pointerSide: "left",
+                    selector: '.vessel[data-vessel-id="v1"] [data-vessel-action="measure"]',
+                    onEnter: function () {
+                        if (!state._puPostRestartResolved) {
+                            state._puAwaitingPostRestartReadOnlyAck = false;
+                            applyPendingUnknownPostRestartState();
+                        }
+                        var v = findVessel("v1");
+                        state._puStep18BaselineLastMeasurement = v && v.lastMeasurement ? String(v.lastMeasurement) : "";
+                    },
+                    advanceWhen: function () {
+                        var v = findVessel("v1");
+                        if (!v) return false;
+                        var base = state._puStep18BaselineLastMeasurement || "";
+                        var cur = v.lastMeasurement ? String(v.lastMeasurement) : "";
+                        return cur !== base && String(v.status || "").trim().toLowerCase() === "ready";
+                    }
+                },
+                {
+                    title: "Step 19",
+                    message:
+                        'Then click Measure on the silo that showed Pending.',
+                    highlightShape: "rect",
+                    pointerSide: "left",
+                    selector: '.vessel[data-vessel-id="v2"] [data-vessel-action="measure"]',
+                    onEnter: function () {
+                        var v = findVessel("v2");
+                        if (v && state._puPostRestartResolved) {
+                            delete v.tutorialPuGlitch;
+                            delete v.tutorialPuStuck;
+                            var sid = parseInt(v.sensorTypeId, 10) || 11;
+                            v.status = statusStringForDashboard(sid, 55);
+                            v.name = "NCR-80 Unknown";
+                            saveState();
+                            refreshUI();
+                        }
+                        state._puStep19BaselineLastMeasurement = v && v.lastMeasurement ? String(v.lastMeasurement) : "";
+                    },
+                    advanceWhen: function () {
+                        var v = findVessel("v2");
+                        if (!v) return false;
+                        var base = state._puStep19BaselineLastMeasurement || "";
+                        var cur = v.lastMeasurement ? String(v.lastMeasurement) : "";
+                        return cur !== base && String(v.status || "").trim().toLowerCase() === "ready";
+                    }
+                },
+                {
+                    title: "Step 20",
+                    message: "Open Vessel, then choose Measure All Vessels.",
+                    highlightShape: "rect",
+                    pointerSide: "left",
+                    selector: "#menuBtnVessel",
+                    advanceWhen: function () {
+                        var btn = document.getElementById("menuBtnVessel");
+                        var root = btn && btn.closest ? btn.closest(".menu-root") : null;
+                        return !!(root && root.classList.contains("open"));
+                    }
+                },
+                {
+                    title: "Step 21",
+                    message: "Click Measure All Vessels.",
+                    highlightShape: "rect",
+                    pointerSide: "left",
+                    selector: "#menuItemMeasureAll",
+                    onEnter: function () {
+                        state._puTutorialMeasureAllStarted = false;
+                    },
+                    advanceWhen: function () {
+                        if (areAnyVesselsMeasuring()) {
+                            state._puTutorialMeasureAllStarted = true;
+                            return false;
+                        }
+                        return !!(
+                            state._puTutorialMeasureAllStarted &&
+                            !areAnyVesselsMeasuring() &&
+                            pendingUnknownAllMeasurableSiteVesselsReady()
+                        );
+                    },
+                    advanceDelayMs: 320
+                },
+                {
+                    title: "Step 22",
+                    message:
+                        "All vessels are now measuring properly. Click Finish to complete troubleshooting guide.",
+                    hideTutorialHighlight: true,
+                    requiresNext: true,
+                    nextLabel: "Finish",
+                    onNext: function () {
+                        if (areAnyVesselsMeasuring()) {
+                            toast("Waiting for Measure All to complete...");
+                            return false;
+                        }
+                        if (!pendingUnknownAllMeasurableSiteVesselsReady()) {
+                            toast("Waiting for all silos to show Ready...");
+                            return false;
+                        }
+                        finishDbReadOnlyTutorial();
+                        return true;
+                    }
+                }
+            ]
+        };
+        return pendingUnknownTutorial;
+    }
+
+    function guidedGetActiveTutorialState() {
+        if (activeTutorialMode === EBOB_TUTORIAL_MODE_DB_READ_ONLY) return ensureDbReadOnlyTutorialState();
+        if (activeTutorialMode === EBOB_TUTORIAL_MODE_PENDING_UNKNOWN) return ensurePendingUnknownTutorialState();
+        return null;
+    }
+
     function getDbTutorialDom() {
         return {
             tooltip: document.getElementById("ebobTutorialTooltip"),
@@ -12089,6 +12867,9 @@
             if (show) el.classList.remove("ebob-tutorial-hidden");
             else el.classList.add("ebob-tutorial-hidden");
         });
+        if (dom.next && !show) {
+            dom.next.classList.remove("ebob-tutorial-next--flash");
+        }
     }
 
     function isVisibleForTutorial(el) {
@@ -12111,9 +12892,9 @@
         return null;
     }
 
-    function isDbReadOnlyTutorialLockActive() {
-        var t = ensureDbReadOnlyTutorialState();
-        return activeTutorialMode === EBOB_TUTORIAL_MODE_DB_READ_ONLY && !!(t && t.active && !t.completed);
+    function isGuidedTutorialLockActive() {
+        var t = guidedGetActiveTutorialState();
+        return !!(t && t.active && !t.completed);
     }
 
     function isTargetInsideSelector(target, selector) {
@@ -12126,15 +12907,62 @@
         }
     }
 
-    function isDbTutorialInteractionAllowed(target, step) {
+    function isDbTutorialInteractionAllowed(target, step, ev) {
         if (!step) return true;
+        var evType = ev && ev.type ? ev.type : "";
+        if (step.blockSimSvcOpen && isTargetInsideSelector(target, '[data-sim-svc="open"]')) return false;
         if (isTargetInsideSelector(target, "#ebobTutorialTooltip")) return true;
         if (isTargetInsideSelector(target, "#ebobTutorialNext")) return true;
         if (isTargetInsideSelector(target, "#guideBackToMenu")) return true;
-        if (isTargetInsideSelector(target, step.selector)) return true;
+
+        var svcDataRow =
+            target && target.closest ? target.closest("#backdropServicesMsc tbody tr[data-service-id]") : null;
+        if (step.blockSvcMscTableRows && svcDataRow) {
+            if (evType === "contextmenu") {
+                var rid = step.svcCtxRowIdForRightClick;
+                if (!rid) return false;
+                return svcDataRow.getAttribute("data-service-id") === rid;
+            }
+            if (evType === "pointerdown" || evType === "auxclick") {
+                if (ev && ev.button !== 0) {
+                    var ridBtn = step.svcCtxRowIdForRightClick;
+                    return !!(ridBtn && svcDataRow.getAttribute("data-service-id") === ridBtn);
+                }
+                return false;
+            }
+            if (evType === "click" || evType === "dblclick") return false;
+        }
+
+        if (step.selector && isTargetInsideSelector(target, step.selector)) return true;
         if (step.inputSelector && isTargetInsideSelector(target, step.inputSelector)) return true;
         if (step.allowEnterSelector && isTargetInsideSelector(target, step.allowEnterSelector)) return true;
+
+        if (step.restrictSvcMscToCtxMenuFlow && isTargetInsideSelector(target, "#backdropServicesMsc")) {
+            if (isTargetInsideSelector(target, "#svcMscTableScrollWrap") && !svcDataRow) return true;
+            return false;
+        }
+
         return false;
+    }
+
+    /**
+     * Services sim dismisses the context menu on any document capture-phase click outside #svcCtxMenu.
+     * That includes tutorial chrome and the services table — users can spam-click and lose the menu,
+     * so #svcCtxStop/#svcCtxStart become invisible and the guide pointer disappears. Skip auto-dismiss
+     * while the guided step requires those menu actions.
+     */
+    function shouldSuppressSvcCtxMenuDismissForTutorial(e) {
+        if (!isGuidedTutorialLockActive()) return false;
+        if (e && e.target && e.target.closest) {
+            if (e.target.closest("#ebobTutorialTooltip")) return true;
+            if (e.target.closest("#ebobTutorialPointer")) return true;
+            if (e.target.closest("#ebobTutorialCircle")) return true;
+        }
+        var gt = guidedGetActiveTutorialState();
+        var st = gt && gt.steps[gt.stepIndex];
+        if (!st || !st.restrictSvcMscToCtxMenuFlow) return false;
+        var sel = st.selector != null ? String(st.selector) : "";
+        return sel === "#svcCtxStop" || sel === "#svcCtxStart";
     }
 
     function bindDbReadOnlyTutorialGuards() {
@@ -12142,11 +12970,11 @@
         dbTutorialGuardsBound = true;
 
         function blockIfLocked(e) {
-            if (!isDbReadOnlyTutorialLockActive()) return;
-            var t = ensureDbReadOnlyTutorialState();
+            if (!isGuidedTutorialLockActive()) return;
+            var t = guidedGetActiveTutorialState();
             var step = t.steps[t.stepIndex];
             if (!step) return;
-            if (isDbTutorialInteractionAllowed(e.target, step)) return;
+            if (isDbTutorialInteractionAllowed(e.target, step, e)) return;
             e.preventDefault();
             e.stopPropagation();
             if (e.stopImmediatePropagation) e.stopImmediatePropagation();
@@ -12154,12 +12982,15 @@
 
         document.addEventListener("pointerdown", blockIfLocked, true);
         document.addEventListener("click", blockIfLocked, true);
+        document.addEventListener("contextmenu", blockIfLocked, true);
+        document.addEventListener("dblclick", blockIfLocked, true);
+        document.addEventListener("auxclick", blockIfLocked, true);
 
         document.addEventListener(
             "keydown",
             function (e) {
-                if (!isDbReadOnlyTutorialLockActive()) return;
-                var t = ensureDbReadOnlyTutorialState();
+                if (!isGuidedTutorialLockActive()) return;
+                var t = guidedGetActiveTutorialState();
                 var step = t.steps[t.stepIndex];
                 if (!step) return;
                 if (e.key === "Escape") {
@@ -12197,12 +13028,24 @@
 
     function positionDbTutorialPointer(target) {
         var dom = getDbTutorialDom();
+        var gt = guidedGetActiveTutorialState();
+        if (!gt || !gt.active || gt.completed) {
+            if (dom.pointer) dom.pointer.classList.add("ebob-tutorial-hidden");
+            if (dom.circle) dom.circle.classList.add("ebob-tutorial-hidden");
+            return;
+        }
+        var stepNoHighlight = gt.steps[gt.stepIndex] || {};
+        if (stepNoHighlight.hideTutorialHighlight) {
+            if (dom.pointer) dom.pointer.classList.add("ebob-tutorial-hidden");
+            if (dom.circle) dom.circle.classList.add("ebob-tutorial-hidden");
+            return;
+        }
         if (!target || !dom.pointer || !dom.circle) {
             if (dom.pointer) dom.pointer.classList.add("ebob-tutorial-hidden");
             if (dom.circle) dom.circle.classList.add("ebob-tutorial-hidden");
             return;
         }
-        var t = ensureDbReadOnlyTutorialState();
+        var t = gt;
         var step = t.steps[t.stepIndex] || {};
         var highlightShape = step.highlightShape === "rect" ? "rect" : "circle";
         var rect = null;
@@ -12227,7 +13070,7 @@
         dom.circle.classList.remove("is-circle", "is-rect");
         var pointerSide = String(step.pointerSide || "auto").toLowerCase();
 
-        var pointerW = dom.pointer.offsetWidth || 34;
+        var pointerW = dom.pointer.offsetWidth || 48;
         if (highlightShape === "rect") {
             var pad = 6;
             var hLeft = Math.max(4, rect.left - pad);
@@ -12259,7 +13102,7 @@
                 dom.pointer.textContent = "👈";
                 dom.pointer.style.left = rectRightX + "px";
             }
-            dom.pointer.style.top = hTop + Math.max(0, hH / 2 - 16) + "px";
+            dom.pointer.style.top = hTop + Math.max(0, hH / 2 - 24) + "px";
         } else {
             var radius = 28;
             dom.circle.classList.add("is-circle");
@@ -12276,15 +13119,15 @@
                 dom.pointer.textContent = "👈";
                 dom.pointer.style.left = rightX + "px";
             }
-            dom.pointer.style.top = cy - 16 + "px";
+            dom.pointer.style.top = cy - 24 + "px";
         }
         dom.pointer.classList.remove("ebob-tutorial-hidden");
         dom.circle.classList.remove("ebob-tutorial-hidden");
     }
 
     function renderDbReadOnlyTutorial() {
-        var t = ensureDbReadOnlyTutorialState();
-        if (!t.active || t.completed) return;
+        var t = guidedGetActiveTutorialState();
+        if (!t || !t.active || t.completed) return;
         var dom = getDbTutorialDom();
         if (!dom.tooltip || !dom.step || !dom.title || !dom.msg) return;
         var step = t.steps[t.stepIndex];
@@ -12295,12 +13138,22 @@
                 step.onEnter();
             }
         }
-        dom.step.textContent = "Step " + (t.stepIndex + 1) + " of " + t.steps.length;
+        /* Match progress line to the heading (e.g. "Step 18 of 23" vs title "Step 18"), not stepIndex+1. */
+        var rawTitle = step.title != null ? String(step.title).trim() : "";
+        var stepLabel = /^Step\b/i.test(rawTitle) ? rawTitle : "Step " + (t.stepIndex + 1);
+        dom.step.textContent = stepLabel + " of " + t.steps.length;
         dom.title.textContent = step.title;
         dom.msg.textContent = step.message;
         if (dom.next) {
             dom.next.hidden = !step.requiresNext;
             dom.next.textContent = step.nextLabel || "Next";
+            /* Pulse Next/Finish whenever the user must click it (read-and-acknowledge steps). */
+            var pulseNext = !!(step.requiresNext && step.suppressNextFlash !== true);
+            if (pulseNext) {
+                dom.next.classList.add("ebob-tutorial-next--flash");
+            } else {
+                dom.next.classList.remove("ebob-tutorial-next--flash");
+            }
         }
         dom.tooltip.classList.remove("ebob-tutorial-hidden");
         positionDbTutorialPointer(getDbTutorialTarget(step));
@@ -12315,8 +13168,10 @@
     function getRetractedStatusRect() {
         var nodes = document.querySelectorAll(".vessel-status-val");
         for (var i = 0; i < nodes.length; i++) {
-            var el = nodes[i];
-            if (!isVisibleForTutorial(el)) continue;
+            var wrap = nodes[i];
+            if (!isVisibleForTutorial(wrap)) continue;
+            var inner = wrap.querySelector(".vessel-status-text");
+            var el = inner || wrap;
             var txt = String(el.textContent || "").trim().toLowerCase();
             if (txt !== "retracted") continue;
             var r = el.getBoundingClientRect();
@@ -12333,6 +13188,19 @@
     function showDbTutorialCompleteOverlay() {
         var dom = getDbTutorialDom();
         if (!dom.complete) return;
+        var titleEl = dom.complete.querySelector(".ebob-tutorial-complete__title");
+        var subEl = dom.complete.querySelector(".ebob-tutorial-complete__sub");
+        if (titleEl && subEl) {
+            if (activeTutorialMode === EBOB_TUTORIAL_MODE_PENDING_UNKNOWN) {
+                titleEl.textContent = "Status Restored";
+                subEl.textContent =
+                    "Pending and Unknown issues are resolved after restarting eBob services. You can return to the menu to replay or try another scenario.";
+            } else {
+                titleEl.textContent = "Binventory Error Resolved";
+                subEl.textContent =
+                    "Database Read Only solved and measurements are verified. Great work. You can now return to the menu to replay or solve a different issue.";
+            }
+        }
         dom.complete.classList.add("ebob-tutorial-complete--visible");
         dom.complete.setAttribute("aria-hidden", "false");
     }
@@ -12356,7 +13224,8 @@
     }
 
     function finishDbReadOnlyTutorial() {
-        var t = ensureDbReadOnlyTutorialState();
+        var t = guidedGetActiveTutorialState();
+        if (!t) return;
         t.completed = true;
         t.active = false;
         if (t.timerId != null) {
@@ -12372,8 +13241,8 @@
     }
 
     function advanceDbReadOnlyTutorial() {
-        var t = ensureDbReadOnlyTutorialState();
-        if (!t.active || t.completed) return;
+        var t = guidedGetActiveTutorialState();
+        if (!t || !t.active || t.completed) return;
         if (t.autoStepTimerId != null) {
             clearTimeout(t.autoStepTimerId);
             t.autoStepTimerId = null;
@@ -12385,15 +13254,20 @@
             t.completed = true;
             t.active = false;
             setDbTutorialVisibility(false);
-            showDbTutorialCompleteOverlay();
+            if (
+                activeTutorialMode === EBOB_TUTORIAL_MODE_DB_READ_ONLY ||
+                activeTutorialMode === EBOB_TUTORIAL_MODE_PENDING_UNKNOWN
+            ) {
+                showDbTutorialCompleteOverlay();
+            }
             return;
         }
         renderDbReadOnlyTutorial();
     }
 
     function tickDbReadOnlyTutorial() {
-        var t = ensureDbReadOnlyTutorialState();
-        if (!t.active || t.completed) return;
+        var t = guidedGetActiveTutorialState();
+        if (!t || !t.active || t.completed) return;
         var step = t.steps[t.stepIndex];
         if (!step) return;
         renderDbReadOnlyTutorial();
@@ -12430,30 +13304,49 @@
     }
 
     function stopDbReadOnlyTutorial() {
-        var t = ensureDbReadOnlyTutorialState();
-        t.active = false;
-        if (t.timerId != null) {
-            clearInterval(t.timerId);
-            t.timerId = null;
+        var dbT = dbReadOnlyTutorial;
+        if (dbT) {
+            dbT.active = false;
+            if (dbT.timerId != null) {
+                clearInterval(dbT.timerId);
+                dbT.timerId = null;
+            }
+            if (dbT.autoStepTimerId != null) {
+                clearTimeout(dbT.autoStepTimerId);
+                dbT.autoStepTimerId = null;
+            }
+            dbT.pendingAdvanceStepIndex = -1;
+            dbT.pendingAdvanceSinceMs = 0;
         }
-        if (t.autoStepTimerId != null) {
-            clearTimeout(t.autoStepTimerId);
-            t.autoStepTimerId = null;
+        var puT = pendingUnknownTutorial;
+        if (puT) {
+            puT.active = false;
+            if (puT.timerId != null) {
+                clearInterval(puT.timerId);
+                puT.timerId = null;
+            }
+            if (puT.autoStepTimerId != null) {
+                clearTimeout(puT.autoStepTimerId);
+                puT.autoStepTimerId = null;
+            }
+            puT.pendingAdvanceStepIndex = -1;
+            puT.pendingAdvanceSinceMs = 0;
         }
-        t.pendingAdvanceStepIndex = -1;
-        t.pendingAdvanceSinceMs = 0;
         setDbTutorialVisibility(false);
         hideDbTutorialCompleteOverlay();
     }
 
     function startDbReadOnlyTutorialIfNeeded() {
-        if (activeTutorialMode !== EBOB_TUTORIAL_MODE_DB_READ_ONLY) {
+        if (
+            activeTutorialMode !== EBOB_TUTORIAL_MODE_DB_READ_ONLY &&
+            activeTutorialMode !== EBOB_TUTORIAL_MODE_PENDING_UNKNOWN
+        ) {
             stopDbReadOnlyTutorial();
             return;
         }
         bindDbReadOnlyTutorialGuards();
-        var t = ensureDbReadOnlyTutorialState();
-        if (t.completed) return;
+        var t = guidedGetActiveTutorialState();
+        if (!t || t.completed) return;
         t.active = true;
         if (t.enteredStepIndex > t.stepIndex) t.enteredStepIndex = -1;
         hideDbTutorialCompleteOverlay();
@@ -12465,7 +13358,8 @@
         if (dom.next && !dom.next.__ebobTutorialBound) {
             dom.next.__ebobTutorialBound = true;
             dom.next.addEventListener("click", function () {
-                var tt = ensureDbReadOnlyTutorialState();
+                var tt = guidedGetActiveTutorialState();
+                if (!tt) return;
                 var step = tt.steps[tt.stepIndex];
                 if (!step || !step.requiresNext) return;
                 if (typeof step.onNext === "function") {
@@ -12517,7 +13411,10 @@
     (function bootstrapBinventory() {
         if (wireScenarioGateIfNeeded()) return;
         loadState();
-        if (activeTutorialMode === EBOB_TUTORIAL_MODE_DB_READ_ONLY) {
+        if (
+            activeTutorialMode === EBOB_TUTORIAL_MODE_DB_READ_ONLY ||
+            activeTutorialMode === EBOB_TUTORIAL_MODE_PENDING_UNKNOWN
+        ) {
             applyAutoLoginSessionIfEnabled();
             refreshUI();
             if (pendingImportRestartToast) {
@@ -14824,9 +15721,15 @@
                 tr.setAttribute("data-service-id", s.id);
                 tr.setAttribute("role", "row");
                 var tdName = document.createElement("td");
-                tdName.textContent = s.name;
+                var spanName = document.createElement("span");
+                spanName.className = "svc-msc-name-text";
+                spanName.textContent = s.name;
+                tdName.appendChild(spanName);
                 var tdDesc = document.createElement("td");
-                tdDesc.textContent = s.description;
+                var spanDesc = document.createElement("span");
+                spanDesc.className = "svc-msc-desc-text";
+                spanDesc.textContent = s.description;
+                tdDesc.appendChild(spanDesc);
                 var tdStat = document.createElement("td");
                 tdStat.textContent = statusText(s);
                 tdStat.className = "svc-col-status";
@@ -15014,6 +15917,7 @@
         document.addEventListener("click", function (e) {
             if (!svcCtxMenu || svcCtxMenu.hidden) return;
             if (e.target.closest && e.target.closest("#svcCtxMenu")) return;
+            if (shouldSuppressSvcCtxMenuDismissForTutorial(e)) return;
             hideCtxMenu();
         }, true);
 
