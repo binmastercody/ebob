@@ -1,0 +1,526 @@
+/*
+ * eBob Guide engine for emulator.html.
+ *  - ?lesson=<id>      runs a guided lesson from app/lessons.js on the sample site (free mode)
+ *  - ?tutorial=db-read-only | pending-unknown-status  dresses the built-in troubleshooting scenarios
+ *    (their steps live in ebob-sim.js; pacing is patched there to use EbobGuidePace)
+ *
+ * Pacing rule: a step accepts your action only after its highlight has finished moving in ("settle"),
+ * and a finished step holds a green check before the next one appears ("hold"). Clicks that arrive
+ * too early are held back with a visible message instead of being lost.
+ */
+(function () {
+    "use strict";
+    var D = window.EbobDisplay, LS = window.EbobLessons;
+    if (!D || !LS) return;
+    var H = LS.helpers;
+    var PKEY = "ebob-guide-progress";
+    var sp = new URLSearchParams(location.search);
+    var lessonId = sp.get("lesson");
+    var scenario = String(sp.get("tutorial") || "").toLowerCase();
+
+    function progress() { try { return JSON.parse(localStorage.getItem(PKEY) || "{}") || {}; } catch (e) { return {}; } }
+    function markDone(id) { var p = progress(); p[id] = Date.now(); try { localStorage.setItem(PKEY, JSON.stringify(p)); } catch (e) {} }
+    function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+    function stripTags(s) { var d = document.createElement("div"); d.innerHTML = s; return d.textContent; }
+    function now() { return Date.now(); }
+
+    var ICON_CHECK = '<svg viewBox="0 0 24 24" aria-hidden="true" class="eg-ico"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+    var ICON_BACK = '<svg viewBox="0 0 24 24" aria-hidden="true" class="eg-ico"><path d="M15 6l-6 6 6 6"/></svg>';
+    var ICON_NEXT = '<svg viewBox="0 0 24 24" aria-hidden="true" class="eg-ico"><path d="M9 6l6 6-6 6"/></svg>';
+    var ICON_GRID = '<svg viewBox="0 0 24 24" aria-hidden="true" class="eg-ico"><rect x="4" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5"/></svg>';
+    var HAND = '<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M27 6c-2.8 0-5 2.2-5 5v22.5l-3.6-3.7c-2-2-5.2-2-7.1 0-1.9 1.9-2 5-.2 7l11.6 13.4c2.9 3.4 7.2 5.3 11.6 5.3H40c7.7 0 14-6.3 14-14V30.5c0-2.6-2.1-4.7-4.7-4.7-1 0-1.9.3-2.6.8v-.6c0-2.6-2.1-4.7-4.7-4.7-1.1 0-2.1.4-2.9 1-.6-2-2.4-3.4-4.5-3.4-.9 0-1.8.3-2.6.7V11c0-2.8-2.2-5-5-5z" fill="#fff" stroke="#111827" stroke-width="3" stroke-linejoin="round"/></svg>';
+
+    /* ---------- shared chrome: top bar ---------- */
+    var lesson = lessonId ? LS.byId(lessonId) : null;
+    var scenarioLesson = null;
+    LS.lessons.forEach(function (l) { if (l.scenario && l.scenario === scenario) scenarioLesson = l; });
+    var shownLesson = lesson || scenarioLesson;
+
+    function buildTopBar() {
+        var top = document.createElement("header");
+        top.className = "eg-ui eg-topbar";
+        var sec = shownLesson ? LS.sections.filter(function (s) { return s.id === shownLesson.section; })[0] : null;
+        top.innerHTML =
+            '<a class="eg-tb-btn eg-home" href="index.html">' + ICON_GRID + "<span>All lessons</span></a>" +
+            '<div class="eg-top-title"><span class="eg-top-kicker">' + esc(sec ? sec.title : "Free practice") + "</span>" +
+            '<span class="eg-top-name">' + esc(shownLesson ? shownLesson.title : "Binventory Workstation") + "</span></div>";
+        document.body.appendChild(top);
+        D.buildToolbar(top);
+        var fab = document.getElementById("guideBackToMenu");
+        if (fab) fab.classList.add("eg-hidden-fab");
+    }
+    buildTopBar();
+
+    if (scenarioLesson) { initScenario(); return; }
+    if (!lesson || !lesson.steps) { return; } /* free practice: just the top bar */
+
+    /* =================================================================
+     *  Guided lessons
+     * ================================================================= */
+    var steps = lesson.steps;
+    var S = { idx: 0, phase: "loading", enteredAt: 0, doneAt: 0, clicked: false, ack: false, review: -1,
+              missingSince: 0, lastTargetEl: null, keyboard: false, finished: false, lastHintAt: 0 };
+
+    /* ---- DOM ---- */
+    var coach = document.createElement("section");
+    coach.className = "eg-ui eg-coach";
+    coach.setAttribute("aria-label", "Lesson guide");
+    coach.innerHTML =
+        '<div class="eg-coach-head"><span class="eg-goal">' + esc(lesson.title) + '</span><span class="eg-count" aria-live="off"></span></div>' +
+        '<div class="eg-bar" role="progressbar" aria-label="Lesson progress" aria-valuemin="0"><span class="eg-bar-fill"></span></div>' +
+        '<div class="eg-state" aria-hidden="true"><span class="eg-state-dot"></span><span class="eg-state-text"></span></div>' +
+        '<div class="eg-live" aria-live="polite" aria-atomic="true"><h2 class="eg-title" tabindex="-1"></h2><p class="eg-msg"></p></div>' +
+        '<p class="eg-hint" role="status" aria-live="assertive"></p>' +
+        '<div class="eg-actions">' +
+        '<button type="button" class="eg-btn eg-btn--ghost eg-back">' + ICON_BACK + "<span>Back</span></button>" +
+        '<button type="button" class="eg-btn eg-btn--ghost eg-doit">Do this step for me</button>' +
+        '<button type="button" class="eg-btn eg-next"><span>Next</span>' + ICON_NEXT + "</button>" +
+        "</div>";
+    document.body.appendChild(coach);
+    var Q = function (s) { return coach.querySelector(s); };
+    var elCount = Q(".eg-count"), elBar = Q(".eg-bar"), elFill = Q(".eg-bar-fill"), elTitle = Q(".eg-title"), elMsg = Q(".eg-msg"),
+        elHint = Q(".eg-hint"), elState = Q(".eg-state"), elStateText = Q(".eg-state-text"),
+        bBack = Q(".eg-back"), bDo = Q(".eg-doit"), bNext = Q(".eg-next");
+    elBar.setAttribute("aria-valuemax", String(steps.length));
+
+    var ring = document.createElement("div");
+    ring.className = "eg-ring";
+    ring.setAttribute("aria-hidden", "true");
+    ring.innerHTML = '<span class="eg-ring-check">' + ICON_CHECK + "</span>";
+    var hand = document.createElement("div");
+    hand.className = "eg-hand";
+    hand.setAttribute("aria-hidden", "true");
+    hand.innerHTML = HAND;
+    document.body.appendChild(ring);
+    document.body.appendChild(hand);
+
+    /* ---- helpers ---- */
+    function target(step) {
+        var t = step && step.target;
+        if (!t) return null;
+        try { return typeof t === "function" ? t() : document.querySelector(t); } catch (e) { return null; }
+    }
+    function vis(e) { return !!e && H.visible(e); }
+    function norm(s) { return String(s == null ? "" : s).trim().replace(/\s+/g, " ").toLowerCase(); }
+    function sameValue(a, b) {
+        var na = parseFloat(a), nb = parseFloat(b);
+        if (/^\s*-?[\d.]+\s*$/.test(a) && /^\s*-?[\d.]+\s*$/.test(b) && isFinite(na) && isFinite(nb)) return na === nb;
+        return norm(a) === norm(b);
+    }
+    function selectedLabels(sel) {
+        var out = [];
+        for (var i = 0; i < sel.options.length; i++) if (sel.options[i].selected) out.push(norm(sel.options[i].text));
+        return out;
+    }
+    function isDone(step, t) {
+        switch (step.do) {
+            case "click": return S.clicked && (!step.until || !!step.until());
+            case "type": return !!t && sameValue(t.value, step.value);
+            case "select": return !!t && t.options && selectedLabels(t).indexOf(norm(step.value)) >= 0;
+            case "check": return !!t && t.checked === true;
+            case "uncheck": return !!t && t.checked === false;
+            case "wait": return !!step.until && !!step.until();
+            case "read": return S.ack;
+        }
+        return false;
+    }
+    function verb(step) {
+        return { click: "Your turn: click", type: "Your turn: type", select: "Your turn: choose", check: "Your turn: check the box",
+                 uncheck: "Your turn: uncheck the box", read: "Read, then press Next", wait: "Watch" }[step.do] || "Your turn";
+    }
+    function setState(kind, text) {
+        elState.className = "eg-state eg-state--" + kind;
+        elStateText.textContent = text;
+        coach.setAttribute("data-phase", kind);
+    }
+    var hintTimer = 0;
+    function hint(text, strong) {
+        elHint.textContent = text;
+        elHint.classList.add("on");
+        clearTimeout(hintTimer);
+        hintTimer = setTimeout(function () { elHint.classList.remove("on"); elHint.textContent = ""; }, 3200);
+        if (strong && !D.reduceMotion()) {
+            coach.classList.remove("eg-nudge"); void coach.offsetWidth; coach.classList.add("eg-nudge");
+            ring.classList.remove("eg-ring--ping"); void ring.offsetWidth; ring.classList.add("eg-ring--ping");
+        }
+    }
+
+    /* ---- rendering ---- */
+    function renderText(i, reviewing) {
+        var st = steps[i];
+        elCount.textContent = (reviewing ? "Reviewing step " : "Step ") + (i + 1) + " of " + steps.length;
+        elTitle.textContent = st.title;
+        elMsg.innerHTML = st.msg + (st.do === "type" ? ' <span class="eg-tip">Tip: click the box, select the old text, then type.</span>' : "");
+        elFill.style.width = ((S.idx + (S.phase === "done" ? 1 : 0)) / steps.length * 100) + "%";
+        elBar.setAttribute("aria-valuenow", String(S.idx));
+        elBar.setAttribute("aria-valuetext", "Step " + (S.idx + 1) + " of " + steps.length);
+    }
+    function updateButtons() {
+        var st = steps[S.idx];
+        bBack.disabled = (S.review >= 0 ? S.review : S.idx) === 0;
+        var nextOn = false, nextLabel = "Next";
+        if (S.review >= 0) { nextOn = true; nextLabel = S.review + 1 >= S.idx ? "Back to current step" : "Next"; }
+        else if (S.phase === "ready" && st.do === "read") nextOn = true;
+        else if (S.phase === "done" && D.get().pace === "manual") nextOn = true;
+        bNext.disabled = !nextOn;
+        bNext.querySelector("span").textContent = nextLabel;
+        bNext.classList.toggle("eg-btn--pulse", nextOn && S.review < 0);
+        bNext.setAttribute("aria-label", nextOn ? nextLabel : "Next, available after you finish this step");
+        bDo.hidden = S.review >= 0 || st.do === "read" || st.do === "wait";
+        bDo.disabled = S.phase !== "ready";
+    }
+
+    function enter(i, opts) {
+        S.idx = i; S.phase = "entering"; S.enteredAt = now(); S.clicked = false; S.ack = false; S.missingSince = 0; S.review = -1; S.scrolled = false;
+        ring.className = "eg-ring"; hand.className = "eg-hand";
+        renderText(i, false);
+        setState("wait", "Please wait");
+        updateButtons();
+        if (!opts || !opts.quiet) { try { elTitle.focus({ preventScroll: true }); } catch (e) {} }
+    }
+
+    function placeRing(t, st) {
+        var r = t.getBoundingClientRect();
+        var pad = 5;
+        ring.style.left = (r.left - pad) + "px";
+        ring.style.top = (r.top - pad) + "px";
+        ring.style.width = (r.width + pad * 2) + "px";
+        ring.style.height = (r.height + pad * 2) + "px";
+        var showHand = st.do !== "read" && st.do !== "wait" && S.phase !== "done" && S.review < 0;
+        hand.classList.toggle("on", showHand && ring.classList.contains("on"));
+        hand.style.left = Math.min(window.innerWidth - 50, r.left + Math.min(r.width * 0.6, r.width - 6)) + "px";
+        hand.style.top = Math.min(window.innerHeight - 50, r.top + Math.min(r.height * 0.55, r.height - 4)) + "px";
+    }
+
+    function placeCoach(t) {
+        var shell = document.getElementById("appShell");
+        var sr = shell ? shell.getBoundingClientRect() : null;
+        var cw = coach.offsetWidth, ch = coach.offsetHeight, vw = window.innerWidth, vh = window.innerHeight;
+        var topMin = 64;
+        if (sr && sr.width > 0 && sr.left >= cw + 28) {
+            coach.classList.add("eg-coach--dock");
+            coach.style.left = Math.max(12, sr.left - cw - 16) + "px";
+            coach.style.top = Math.max(topMin, Math.min(sr.top, vh - ch - 12)) + "px";
+            coach.style.bottom = "auto";
+            return;
+        }
+        coach.classList.remove("eg-coach--dock");
+        coach.style.left = Math.max(12, (vw - cw) / 2) + "px";
+        var bottomTop = vh - ch - 12;
+        var useTop = false;
+        if (t) {
+            var r = t.getBoundingClientRect();
+            if (r.bottom + 8 > bottomTop && r.top < vh) useTop = true;
+            if (useTop && r.top - 8 < topMin + ch) useTop = r.top > vh / 2 ? true : false;
+        }
+        coach.style.top = (useTop ? topMin : bottomTop) + "px";
+        coach.style.bottom = "auto";
+    }
+
+    function tick() {
+        if (S.finished) return;
+        if (S.phase === "loading") {
+            if (appReady()) { enter(0, { quiet: true }); }
+            else { setState("wait", "Binventory is starting"); placeCoach(null); return; }
+        }
+        var i = S.review >= 0 ? S.review : S.idx;
+        var st = steps[i];
+        var t = target(st);
+        var tv = vis(t);
+        if (tv && !S.scrolled) {
+            S.scrolled = true;
+            var r0 = t.getBoundingClientRect();
+            if (r0.top < 56 || r0.bottom > window.innerHeight - 8) {
+                try { t.scrollIntoView({ block: "center", behavior: D.reduceMotion() ? "auto" : "smooth" }); } catch (e) {}
+            }
+        }
+        placeCoach(tv ? t : null);
+
+        if (S.review >= 0) {
+            if (tv) { ring.classList.add("on", "eg-ring--review"); placeRing(t, st); } else { ring.classList.remove("on"); hand.classList.remove("on"); }
+            return;
+        }
+
+        if (!tv) {
+            ring.classList.remove("on"); hand.classList.remove("on");
+            /* a clicked menu item or Close button disappears as it works: finish the step without the ring */
+            if ((S.phase === "ready" && st.do === "click" && S.clicked) || S.phase === "done") { S.missingSince = 0; stepProgress(st, t); return; }
+            if (!S.missingSince) S.missingSince = now();
+            var prev = steps[S.idx - 1];
+            if (S.phase !== "done" && prev && prev.opensMenu && now() - S.missingSince > 900) {
+                enter(S.idx - 1, { quiet: true });
+                hint("The menu closed. Open it again.", false);
+                return;
+            }
+            if (S.phase === "ready") setState("wait", "Waiting for Binventory");
+            return;
+        }
+        S.missingSince = 0;
+        if (!ring.classList.contains("on")) {
+            ring.classList.add("on");
+            ring.classList.toggle("eg-ring--look", st.do === "read" || st.do === "wait");
+            ring.style.setProperty("--eg-ring-ms", D.pace().ring + "ms");
+            ring.classList.add("eg-ring--enter");
+        }
+        placeRing(t, st);
+        if (st.do === "type" && !t.__egSelectOnFocus) {
+            t.__egSelectOnFocus = true;
+            t.addEventListener("focus", function () { try { if (steps[S.idx] && target(steps[S.idx]) === t) t.select(); } catch (e) {} });
+        }
+
+        if (S.phase === "entering") {
+            if (now() - S.enteredAt >= D.pace().settle) {
+                S.phase = "ready";
+                ring.classList.remove("eg-ring--enter");
+                setState(st.do === "read" ? "read" : (st.do === "wait" ? "watch" : "go"), verb(st));
+                updateButtons();
+                if (S.keyboard && st.do !== "read" && st.do !== "wait") { try { t.focus(); } catch (e) {} }
+            }
+            return;
+        }
+        stepProgress(st, t);
+    }
+
+    function stepProgress(st, t) {
+        if (S.phase === "ready") {
+            if (isDone(st, t)) {
+                S.phase = "done"; S.doneAt = now();
+                ring.classList.add("eg-ring--done"); hand.classList.remove("on");
+                setState("done", D.get().pace === "manual" && st.do !== "read" ? "Done. Press Next" : "Done");
+                renderText(S.idx, false);
+                updateButtons();
+            }
+            return;
+        }
+        if (S.phase === "done") {
+            /* a typed value or checkbox that changes back undoes the step */
+            if (t && (st.do === "type" || st.do === "select" || st.do === "check" || st.do === "uncheck") && !isDone(st, t)) {
+                S.phase = "ready"; ring.classList.remove("eg-ring--done");
+                setState("go", verb(st)); updateButtons(); return;
+            }
+            if (D.get().pace === "manual" && st.do !== "read") return;
+            if (now() - S.doneAt >= D.pace().hold) advance();
+        }
+    }
+
+    function advance() {
+        if (S.idx + 1 >= steps.length) return finish();
+        enter(S.idx + 1);
+    }
+
+    function appReady() {
+        var ov = document.getElementById("startupOverlay");
+        if (ov && ov.classList.contains("startup-overlay--visible")) return false;
+        var grid = document.getElementById("vesselGrid");
+        if (!grid || !grid.children.length) return false;
+        if (grid.querySelector(".vessel--initializing") && now() - bootAt < 20000) return false;
+        return true;
+    }
+    var bootAt = now();
+
+    /* ---- input guard: only the circled item, and only once it is ready ---- */
+    function inGuide(e) { return !!(e.target && e.target.closest && e.target.closest(".eg-ui, .eg-success")); }
+    function inTarget(e) {
+        var st = steps[S.idx], t = target(st);
+        return !!t && (t === e.target || t.contains(e.target) || (e.target.tagName === "OPTION" && t.contains(e.target)));
+    }
+    function guard(e) {
+        if (S.finished || S.phase === "loading" || inGuide(e)) return;
+        var block = true, msg = "";
+        var st = steps[S.idx];
+        if (S.review >= 0) msg = "You are looking back at an earlier step. Press Back to current step to carry on.";
+        else if (S.phase === "entering") msg = "One moment. Wait for the red circle to settle, then " + st.title.toLowerCase() + ".";
+        else if (S.phase === "done") msg = "Got it. The next step is on its way.";
+        else if (st.do === "read") msg = "This step is just to read. Press Next when you are ready.";
+        else if (st.do === "wait") msg = "Just watch this one. It moves on by itself.";
+        else if (inTarget(e)) block = false;
+        else msg = "Not that one. Use the item in the red circle.";
+        if (!block) { if (e.type === "click") S.clicked = true; return; }
+        e.preventDefault(); e.stopPropagation(); if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+        if (e.type === "pointerdown" || (e.type === "click" && now() - S.lastHintAt > 400)) { S.lastHintAt = now(); hint(msg, true); }
+    }
+    ["pointerdown", "mousedown", "mouseup", "click", "dblclick", "contextmenu", "auxclick"].forEach(function (t) {
+        window.addEventListener(t, guard, true);
+    });
+    window.addEventListener("keydown", function (e) {
+        if (e.key === "Tab") S.keyboard = true;
+        if (S.finished || S.phase === "loading" || inGuide(e)) return;
+        if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation(); return; }
+        var st = steps[S.idx];
+        var typing = e.key.length === 1 || e.key === "Backspace" || e.key === "Delete";
+        var activate = e.key === "Enter" || e.key === " ";
+        var focusedTarget = inTarget(e);
+        /* typing or pressing Enter in a field that is not this step's field is held back */
+        if ((typing || activate || e.key.indexOf("Arrow") === 0) && !(focusedTarget && S.phase === "ready" && S.review < 0)) {
+            var tag = (e.target.tagName || "").toLowerCase();
+            if (tag === "input" || tag === "select" || tag === "textarea" || tag === "button" || activate) {
+                e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
+                hint(S.phase === "ready" ? "Use the item in the red circle." : "One moment. Wait for the red circle to settle.", true);
+            }
+        }
+    }, true);
+    window.addEventListener("pointerdown", function () { S.keyboard = false; }, true);
+
+    /* ---- buttons ---- */
+    bNext.addEventListener("click", function () {
+        if (bNext.disabled) return;
+        if (S.review >= 0) {
+            S.review++;
+            if (S.review >= S.idx) { S.review = -1; ring.classList.remove("eg-ring--review"); ring.classList.remove("on"); renderText(S.idx, false); setState(S.phase === "done" ? "done" : (S.phase === "ready" ? "go" : "wait"), S.phase === "ready" ? verb(steps[S.idx]) : "Please wait"); }
+            else { renderText(S.review, true); setState("review", "Looking back"); }
+            ring.classList.remove("on");
+            updateButtons(); return;
+        }
+        var st = steps[S.idx];
+        if (S.phase === "ready" && st.do === "read") { S.ack = true; return; }
+        if (S.phase === "done") advance();
+    });
+    bBack.addEventListener("click", function () {
+        var from = S.review >= 0 ? S.review : S.idx;
+        if (from <= 0) return;
+        S.review = from - 1;
+        ring.classList.remove("on"); hand.classList.remove("on");
+        renderText(S.review, true);
+        setState("review", "Looking back. Binventory keeps what you already did.");
+        updateButtons();
+    });
+    bDo.addEventListener("click", function () {
+        if (S.phase !== "ready" || S.review >= 0) return;
+        var st = steps[S.idx], t = target(st);
+        if (!t) return;
+        doStep(st, t);
+    });
+    function fire(t, type) { t.dispatchEvent(new Event(type, { bubbles: true })); }
+    function doStep(st, t) {
+        if (st.do === "click") { t.click(); }
+        else if (st.do === "type") { t.focus(); t.value = st.value; fire(t, "input"); fire(t, "change"); }
+        else if (st.do === "select") {
+            for (var i = 0; i < t.options.length; i++) {
+                var hit = norm(t.options[i].text) === norm(st.value);
+                if (t.multiple || t.size > 1) t.options[i].selected = hit; else if (hit) t.selectedIndex = i;
+            }
+            fire(t, "input"); fire(t, "change");
+        }
+        else if (st.do === "check" && !t.checked) t.click();
+        else if (st.do === "uncheck" && t.checked) t.click();
+    }
+
+    /* ---- finish ---- */
+    function finish() {
+        S.finished = true;
+        markDone(lesson.id);
+        ring.classList.remove("on"); hand.classList.remove("on");
+        coach.hidden = true;
+        var list = LS.lessons, at = list.indexOf(lesson), next = null;
+        for (var k = at + 1; k < list.length; k++) { if (list[k].steps || list[k].scenario || list[k].doc) { next = list[k]; break; } }
+        var ov = document.createElement("div");
+        ov.className = "eg-success";
+        ov.setAttribute("role", "dialog"); ov.setAttribute("aria-modal", "true"); ov.setAttribute("aria-labelledby", "egSuccessTitle");
+        ov.innerHTML =
+            '<div class="eg-success-card">' +
+            '<svg class="eg-check" viewBox="0 0 52 52" aria-hidden="true"><circle class="eg-check-c" cx="26" cy="26" r="24"/><path class="eg-check-p" d="M15 27l7.5 7.5L38 19"/></svg>' +
+            '<p class="eg-success-kicker">Lesson complete</p>' +
+            '<h2 id="egSuccessTitle" tabindex="-1">' + esc(lesson.title) + "</h2>" +
+            '<p class="eg-success-text">' + esc(lesson.outro || "") + "</p>" +
+            '<div class="eg-success-actions">' +
+            (next ? '<a class="eg-btn eg-btn--big" href="' + lessonHref(next) + '">Next lesson: ' + esc(next.title) + ICON_NEXT + "</a>" : "") +
+            '<a class="eg-btn eg-btn--light" href="index.html">' + ICON_GRID + "All lessons</a>" +
+            '<a class="eg-btn eg-btn--light" href="' + lessonHref(lesson) + '">Do it again</a>' +
+            "</div></div>";
+        document.body.appendChild(ov);
+        setTimeout(function () { var h2 = ov.querySelector("h2"); if (h2) h2.focus(); }, 30);
+    }
+
+    /* expose a small, read-only view for tests and support */
+    window.EbobGuide = {
+        state: function () { return { lesson: lesson.id, idx: S.idx, total: steps.length, phase: S.phase, review: S.review, finished: S.finished }; },
+        /* test hook: tag the current target so automated checks can find it */
+        markTarget: function () {
+            var old = document.querySelectorAll("[data-eg-current]");
+            for (var i = 0; i < old.length; i++) old[i].removeAttribute("data-eg-current");
+            var st = steps[S.idx], t = target(st);
+            if (!t) return null;
+            t.setAttribute("data-eg-current", "1");
+            return { do: st.do, value: st.value == null ? null : String(st.value), tag: t.tagName, title: st.title };
+        }
+    };
+
+    setInterval(tick, 60);
+    window.addEventListener("resize", tick);
+    window.addEventListener("scroll", tick, true);
+    D.onChange(function () { if (!S.finished && S.phase !== "loading") { renderText(S.review >= 0 ? S.review : S.idx, S.review >= 0); updateButtons(); } });
+
+    /* =================================================================
+     *  Built-in troubleshooting scenarios
+     * ================================================================= */
+    function initScenario() {
+        document.documentElement.classList.add("eg-scenario");
+        var tip = document.getElementById("ebobTutorialTooltip");
+        if (!tip) return;
+        /* a status line and hint inside the scenario card */
+        var stateEl = document.createElement("div");
+        stateEl.className = "eg-state eg-state--wait eg-native-state";
+        stateEl.innerHTML = '<span class="eg-state-dot"></span><span class="eg-state-text">Please wait</span>';
+        var hintEl = document.createElement("p");
+        hintEl.className = "eg-hint"; hintEl.setAttribute("role", "status"); hintEl.setAttribute("aria-live", "assertive");
+        var reviewEl = document.createElement("div");
+        reviewEl.className = "eg-ui eg-native-review"; reviewEl.hidden = true;
+        var backBtn = document.createElement("button");
+        backBtn.type = "button"; backBtn.className = "eg-ui eg-native-back"; backBtn.innerHTML = ICON_BACK + "<span>Back</span>";
+        backBtn.setAttribute("aria-label", "Show the previous step again");
+        var titleEl = document.getElementById("ebobTutorialTitle");
+        tip.insertBefore(stateEl, titleEl);
+        var actions = tip.querySelector(".ebob-tutorial-actions");
+        tip.insertBefore(hintEl, actions);
+        tip.insertBefore(reviewEl, actions);
+        if (actions) actions.insertBefore(backBtn, actions.firstChild);
+        var bar = document.createElement("div");
+        bar.className = "eg-bar"; bar.setAttribute("role", "progressbar"); bar.setAttribute("aria-label", "Scenario progress");
+        bar.innerHTML = '<span class="eg-bar-fill"></span>';
+        tip.insertBefore(bar, stateEl);
+
+        var lastIdx = -1, enteredAt = 0, reviewAt = -1, markedDone = false, ht = 0;
+        function st() { return window.__ebobNativeTutorial ? window.__ebobNativeTutorial.state() : null; }
+        function setNative(kind, text) { stateEl.className = "eg-state eg-state--" + kind + " eg-native-state"; stateEl.lastChild.textContent = text; }
+        function showReview() {
+            var s = st(); if (!s || reviewAt < 0) { reviewEl.hidden = true; return; }
+            var p = s.steps[reviewAt];
+            reviewEl.hidden = false;
+            reviewEl.innerHTML = '<p class="eg-native-review-head">Earlier: step ' + (reviewAt + 1) + " of " + s.total + "</p><p><b>" + esc(p.title) + "</b> " + esc(p.message) + "</p>" +
+                '<div class="eg-native-review-btns">' + (reviewAt > 0 ? '<button type="button" class="eg-ui" data-r="prev">Earlier</button>' : "") +
+                '<button type="button" class="eg-ui" data-r="close">Back to current step</button></div>';
+        }
+        reviewEl.addEventListener("click", function (e) {
+            var b = e.target.closest("button"); if (!b) return;
+            if (b.getAttribute("data-r") === "prev" && reviewAt > 0) reviewAt--; else reviewAt = -1;
+            showReview();
+        });
+        backBtn.addEventListener("click", function () {
+            var s = st(); if (!s) return;
+            reviewAt = reviewAt < 0 ? s.index - 1 : Math.max(0, reviewAt - 1);
+            showReview();
+        });
+        window.addEventListener("ebobguide:native-blocked", function (e) {
+            var d = e.detail || {};
+            hintEl.textContent = d.done ? "Got it. The next step is on its way." : (d.busy ? "One moment. Wait for the red circle to settle." : "Not that one. Use the item in the red circle.");
+            hintEl.classList.add("on");
+            clearTimeout(ht); ht = setTimeout(function () { hintEl.classList.remove("on"); hintEl.textContent = ""; }, 3000);
+            if (!D.reduceMotion()) { tip.classList.remove("eg-nudge"); void tip.offsetWidth; tip.classList.add("eg-nudge"); }
+        });
+        setInterval(function () {
+            var s = st(); if (!s) return;
+            if (s.completed) { if (!markedDone) { markedDone = true; markDone(scenarioLesson.id); } return; }
+            if (s.index !== lastIdx) { lastIdx = s.index; enteredAt = now(); reviewAt = -1; showReview(); }
+            backBtn.disabled = s.index === 0;
+            bar.firstChild.style.width = (s.index / s.total * 100) + "%";
+            bar.setAttribute("aria-valuenow", String(s.index)); bar.setAttribute("aria-valuemax", String(s.total));
+            if (s.pending) setNative("done", "Done");
+            else if (now() - enteredAt < D.pace().settle) setNative("wait", "Please wait");
+            else setNative("go", "Your turn");
+        }, 80);
+    }
+
+    function lessonHref(l) {
+        return l.kind === "doc" ? "doc.html?lesson=" + l.id : l.scenario ? "emulator.html?tutorial=" + l.scenario + "&fresh=1" : "emulator.html?tutorial=free-mode&lesson=" + l.id;
+    }
+})();

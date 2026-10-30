@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en" class="eg-index eg-docpage">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#5b3fa6">
+<title>Binventory eBob Guide</title>
+<link rel="icon" href="assets/eBob-V5-Application.ico">
+<script>
+(function () { try {
+  var d = JSON.parse(localStorage.getItem("ebob-guide-display") || "{}"), c = document.documentElement.classList;
+  var pct = [0.9, 1, 1.15, 1.3, 1.5][d.size == null ? 1 : d.size] || 1;
+  document.documentElement.style.setProperty("--eg-scale", pct);
+  if (d.contrast) c.add("eg-hc");
+} catch (e) {} })();
+</script>
+<link rel="stylesheet" href="app/guide.css">
+</head>
+<body>
+<a class="eg-skip" href="#docMain">Skip to the lesson</a>
+<header class="eg-ui eg-topbar eg-doc-top" id="top">
+  <a class="eg-tb-btn eg-home" href="index.html"><svg viewBox="0 0 24 24" aria-hidden="true" class="eg-ico"><rect x="4" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5"/></svg><span>All lessons</span></a>
+  <div class="eg-top-title"><span class="eg-top-kicker" id="docKicker"></span><span class="eg-top-name" id="docTopName"></span></div>
+</header>
+<main class="eg-page eg-doc" id="docMain">
+  <article class="eg-doc-card" aria-labelledby="docStepTitle">
+    <div class="eg-doc-head">
+      <span class="eg-doc-tag">Reading lesson</span>
+      <span class="eg-goal" id="docTitle"></span>
+      <span class="eg-count" id="docCount"></span>
+    </div>
+    <div class="eg-bar" role="progressbar" aria-label="Lesson progress" aria-valuemin="0" id="docBar"><span class="eg-bar-fill" id="docFill"></span></div>
+    <ol class="eg-doc-dots" id="docDots" aria-label="Steps"></ol>
+    <div class="eg-doc-body" aria-live="polite" aria-atomic="true">
+      <h1 class="eg-doc-title" id="docStepTitle" tabindex="-1"></h1>
+      <div class="eg-doc-text" id="docText"></div>
+    </div>
+    <p class="eg-doc-src" id="docSrc"></p>
+    <div class="eg-actions eg-doc-actions">
+      <button type="button" class="eg-btn eg-btn--ghost" id="docBack"><svg viewBox="0 0 24 24" aria-hidden="true" class="eg-ico"><path d="M15 6l-6 6 6 6"/></svg><span>Back</span></button>
+      <button type="button" class="eg-btn" id="docNext"><span>Next</span><svg viewBox="0 0 24 24" aria-hidden="true" class="eg-ico"><path d="M9 6l6 6-6 6"/></svg></button>
+    </div>
+  </article>
+  <p class="eg-doc-help">This lesson has no practice screen because installation happens outside the Workstation. Use the arrow keys or the buttons to move between steps.</p>
+</main>
+<script src="app/display.js"></script>
+<script src="app/lessons.js"></script>
+<script>
+(function () {
+  "use strict";
+  var LS = window.EbobLessons, D = window.EbobDisplay, PKEY = "ebob-guide-progress";
+  D.buildToolbar(document.getElementById("top"));
+  var id = new URLSearchParams(location.search).get("lesson");
+  var lesson = LS.byId(id);
+  if (!lesson || !lesson.doc) { location.replace("index.html"); return; }
+  var sec = LS.sections.filter(function (s) { return s.id === lesson.section; })[0];
+  function $(i) { return document.getElementById(i); }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+  function href(l) { return l.kind === "doc" ? "doc.html?lesson=" + l.id : l.scenario ? "emulator.html?tutorial=" + l.scenario + "&fresh=1" : "emulator.html?tutorial=free-mode&lesson=" + l.id; }
+  document.title = lesson.title + " | Binventory eBob Guide";
+  $("docKicker").textContent = sec ? sec.title : "";
+  $("docTopName").textContent = lesson.title;
+  $("docTitle").textContent = lesson.title;
+  $("docSrc").textContent = "From the Binventory V5 Operator's Manual, section " + lesson.manual + ".";
+  var steps = lesson.doc, n = steps.length, i = 0, dots = $("docDots");
+  steps.forEach(function (s, k) {
+    var li = document.createElement("li");
+    li.innerHTML = '<button type="button" aria-label="Step ' + (k + 1) + ": " + esc(s.title) + '"></button>';
+    li.firstChild.addEventListener("click", function () { go(k); });
+    dots.appendChild(li);
+  });
+  $("docBar").setAttribute("aria-valuemax", n);
+  function go(k, focus) {
+    i = Math.max(0, Math.min(n - 1, k));
+    var s = steps[i];
+    $("docCount").textContent = "Step " + (i + 1) + " of " + n;
+    $("docBar").setAttribute("aria-valuenow", i + 1);
+    $("docFill").style.width = ((i + 1) / n * 100) + "%";
+    $("docStepTitle").textContent = s.title;
+    $("docText").innerHTML = s.html;
+    $("docText").querySelectorAll("a[href^=http]").forEach(function (a) { a.target = "_blank"; a.rel = "noopener"; });
+    Array.prototype.forEach.call(dots.children, function (li, k2) {
+      li.className = k2 < i ? "is-done" : k2 === i ? "is-cur" : "";
+      if (k2 === i) li.firstChild.setAttribute("aria-current", "step"); else li.firstChild.removeAttribute("aria-current");
+    });
+    $("docBack").disabled = i === 0;
+    $("docNext").querySelector("span").textContent = i === n - 1 ? "Finish lesson" : "Next";
+    if (focus !== false) $("docStepTitle").focus({ preventScroll: false });
+  }
+  function finish() {
+    var p = {}; try { p = JSON.parse(localStorage.getItem(PKEY) || "{}") || {}; } catch (e) {}
+    p[lesson.id] = Date.now(); try { localStorage.setItem(PKEY, JSON.stringify(p)); } catch (e) {}
+    var list = LS.lessons, at = list.indexOf(lesson), next = list[at + 1] || null;
+    var ov = document.createElement("div");
+    ov.className = "eg-success";
+    ov.setAttribute("role", "dialog"); ov.setAttribute("aria-modal", "true"); ov.setAttribute("aria-labelledby", "egSuccessTitle");
+    ov.innerHTML = '<div class="eg-success-card">' +
+      '<svg class="eg-check" viewBox="0 0 52 52" aria-hidden="true"><circle class="eg-check-c" cx="26" cy="26" r="24"/><path class="eg-check-p" d="M15 27l7.5 7.5L38 19"/></svg>' +
+      '<p class="eg-success-kicker">Lesson complete</p><h2 id="egSuccessTitle" tabindex="-1">' + esc(lesson.title) + "</h2>" +
+      '<p class="eg-success-text">' + esc(lesson.outro || "") + "</p>" +
+      '<div class="eg-success-actions">' +
+      (next ? '<a class="eg-btn eg-btn--big" href="' + href(next) + '">Next lesson: ' + esc(next.title) + "</a>" : "") +
+      '<a class="eg-btn eg-btn--light" href="index.html">All lessons</a>' +
+      '<button type="button" class="eg-btn eg-btn--light" id="docAgain">Read it again</button></div></div>';
+    document.body.appendChild(ov);
+    ov.querySelector("#docAgain").addEventListener("click", function () { ov.remove(); go(0); });
+    setTimeout(function () { ov.querySelector("h2").focus(); }, 30);
+  }
+  $("docBack").addEventListener("click", function () { go(i - 1); });
+  $("docNext").addEventListener("click", function () { if (i === n - 1) finish(); else go(i + 1); });
+  document.addEventListener("keydown", function (e) {
+    if (e.altKey || e.ctrlKey || e.metaKey || document.querySelector(".eg-success")) return;
+    var t = e.target.tagName; if (t === "INPUT" || t === "TEXTAREA" || t === "SELECT") return;
+    if (e.key === "ArrowRight") { e.preventDefault(); $("docNext").click(); }
+    else if (e.key === "ArrowLeft" && i > 0) { e.preventDefault(); go(i - 1); }
+  });
+  go(0, false);
+})();
+</script>
+</body>
+</html>

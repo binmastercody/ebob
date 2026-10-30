@@ -45,6 +45,9 @@
     var EBOB_GUIDED_TUTORIAL_MIN_ADVANCE_REDUCED_MS = 180;
 
     function getGuidedTutorialMinAdvanceDelayMs() {
+        if (window.EbobGuidePace && typeof window.EbobGuidePace.doneHoldMs === "function") {
+            return window.EbobGuidePace.doneHoldMs();
+        }
         if (
             typeof window.matchMedia === "function" &&
             window.matchMedia("(prefers-reduced-motion: reduce)").matches
@@ -12994,7 +12997,16 @@
             var t = guidedGetActiveTutorialState();
             var step = t.steps[t.stepIndex];
             if (!step) return;
-            if (isDbTutorialInteractionAllowed(e.target, step, e)) return;
+            if (e.target && e.target.closest && e.target.closest(".eg-ui")) return;
+            var egBusy = false;
+            if (window.EbobGuidePace && typeof window.EbobGuidePace.settleMs === "function" && e.type !== "contextmenu") {
+                egBusy = t.pendingAdvanceStepIndex === t.stepIndex ||
+                    (t.__egEnteredAtMs && Date.now() - t.__egEnteredAtMs < window.EbobGuidePace.settleMs());
+            }
+            if (!egBusy && isDbTutorialInteractionAllowed(e.target, step, e)) return;
+            if (e.type === "pointerdown" || e.type === "click") {
+                try { window.dispatchEvent(new CustomEvent("ebobguide:native-blocked", { detail: { busy: egBusy, done: t.pendingAdvanceStepIndex === t.stepIndex } })); } catch (eEv) {}
+            }
             e.preventDefault();
             e.stopPropagation();
             if (e.stopImmediatePropagation) e.stopImmediatePropagation();
@@ -13154,6 +13166,8 @@
         if (!step) return;
         if (t.enteredStepIndex !== t.stepIndex) {
             t.enteredStepIndex = t.stepIndex;
+            t.__egEnteredAtMs = Date.now();
+            try { window.dispatchEvent(new CustomEvent("ebobguide:native-step", { detail: { index: t.stepIndex, total: t.steps.length } })); } catch (eEv) {}
             if (typeof step.onEnter === "function") {
                 step.onEnter();
             }
@@ -13244,8 +13258,7 @@
         } catch (e) {
             /* private mode */
         }
-        var base = window.location.pathname || "ebob.html";
-        window.location.href = base;
+        window.location.href = "index.html";
     }
 
     function finishDbReadOnlyTutorial() {
@@ -13434,6 +13447,15 @@
         };
     }
 
+    window.__ebobNativeTutorial = {
+        state: function () {
+            var t = guidedGetActiveTutorialState();
+            if (!t) return null;
+            return { index: t.stepIndex, total: t.steps.length, completed: !!t.completed, active: !!t.active,
+                pending: t.pendingAdvanceStepIndex === t.stepIndex,
+                steps: t.steps.map(function (s) { return { title: s.title, message: s.message }; }) };
+        }
+    };
     /* —— init —— */
     (function bootstrapBinventory() {
         if (wireScenarioGateIfNeeded()) return;
