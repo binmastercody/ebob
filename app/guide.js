@@ -16,6 +16,8 @@
     /* the page hosting the lesson: the Binventory emulator by default, or the installer replica */
     var HOST = window.EbobGuideHost || {
         shellId: "appShell",
+        minShellW: 960,
+        refit: function () { if (window.__ebobUpdateAppColumnLayout) window.__ebobUpdateAppColumnLayout(); },
         ready: function () {
             var ov = document.getElementById("startupOverlay");
             if (ov && ov.classList.contains("startup-overlay--visible")) return false;
@@ -188,8 +190,10 @@
         bNext.querySelector("span").textContent = nextLabel;
         bNext.classList.toggle("eg-btn--pulse", nextOn && S.review < 0);
         bNext.setAttribute("aria-label", nextOn ? nextLabel : "Next, available after you finish this step");
+        var h0 = coach.offsetHeight;
         bDo.hidden = S.review >= 0 || st.do === "read" || st.do === "wait";
         bDo.disabled = S.phase !== "ready";
+        if (coach.offsetHeight !== h0) relayout();   /* the button row changed the card height */
     }
 
     function enter(i, opts) {
@@ -267,6 +271,11 @@
         function clampX(x) { return Math.max(m, Math.min(vw - cw - m, x)); }
         function clampY(y) { return Math.max(top, Math.min(vh - ch - m, y)); }
         var c = [];
+        if (composed && shellRect && shellRect.width > 0) {
+            /* the reserved slot: top-aligned with the window, or centered on it when the card is taller */
+            var dy = ch <= shellRect.height ? shellRect.top : shellRect.top - (ch - shellRect.height) / 2;
+            c.push({ x: shellRect.left - cw - 16, y: dy, dock: true });
+        }
         if (lastSpot) c.push({ x: lastSpot.x, y: lastSpot.y, dock: lastSpot.dock });
         if (shellRect && shellRect.width > 0) {
             if (shellRect.left >= cw + 28) c.push({ x: shellRect.left - cw - 16, y: shellRect.top, dock: true });
@@ -288,13 +297,41 @@
         }
         return null;
     }
+    /* Centered composition: when the docked card and the window fit side by side, the host page
+       reserves --eg-dock-w to the left of the window (html.eg-composed), so card + gap + window are
+       centered as one unit. Decided per viewport and text size, not per step, so the window never jumps. */
+    var composeKey = "", composed = false;
+    function compose() {
+        var root = document.documentElement, tb = document.querySelector(".eg-topbar");
+        var topPx = tb ? Math.ceil(tb.getBoundingClientRect().bottom) : 0;
+        var hadDock = coach.classList.contains("eg-coach--dock"), hadMin = coach.classList.contains("eg-coach--min");
+        coach.classList.add("eg-coach--dock"); coach.classList.remove("eg-coach--min");
+        var cw = coach.offsetWidth;
+        coach.classList.toggle("eg-coach--dock", hadDock); coach.classList.toggle("eg-coach--min", hadMin);
+        var key = window.innerWidth + "x" + window.innerHeight + ":" + topPx + ":" + cw;
+        if (key === composeKey) return composed;
+        /* wait for the host to be ready, or its window is not sized yet */
+        if (!HOST.ready || HOST.ready()) composeKey = key;
+        root.style.setProperty("--eg-top", topPx + "px");
+        root.style.setProperty("--eg-dock-w", (cw + 16) + "px");
+        root.classList.add("eg-composed");
+        if (HOST.refit) HOST.refit();
+        var shell = document.getElementById(HOST.shellId), sr = shell ? shell.getBoundingClientRect() : null;
+        composed = !!(sr && sr.width > 0 && sr.left - cw - 16 >= 12 && sr.right <= window.innerWidth - 12 &&
+            (!HOST.minShellW || sr.width >= HOST.minShellW));
+        if (!composed) { root.classList.remove("eg-composed"); if (HOST.refit) HOST.refit(); }
+        lastSpot = null;
+        return composed;
+    }
     var userMin = false;
     function placeCoach(t, st) {
+        compose();
         var shell = document.getElementById(HOST.shellId);
         var sr = shell ? shell.getBoundingClientRect() : null;
         var avoid = avoidRects(t, st);
         var tries = userMin ? [true] : [false, true];
         var spot = null, compact = userMin;
+        coach.classList.remove("eg-coach--narrow");
         for (var i = 0; i < tries.length && !spot; i++) {
             compact = tries[i];
             coach.classList.toggle("eg-coach--min", compact);
@@ -308,6 +345,12 @@
                 if (spot && widths[w] && !spot.dock) spot = null;
                 if (!spot && widths[w]) lastSpot = null;
             }
+        }
+        if (!spot) {
+            /* a narrow compact card can still fit beside the target on short, large-text screens */
+            coach.classList.add("eg-coach--min", "eg-coach--narrow"); coach.classList.remove("eg-coach--dock");
+            spot = findSpot(coach.offsetWidth, coach.offsetHeight, avoid, null);
+            if (spot) compact = true; else coach.classList.remove("eg-coach--narrow");
         }
         if (!spot) {
             /* nothing is clear: keep the compact bar at the bottom or top, whichever covers less */
@@ -326,6 +369,13 @@
         S.compact = compact;
         clearTopbar(t && !(st && st.ring === false) ? [box(t.getBoundingClientRect()), ring.classList.contains("on") ? box(ring.getBoundingClientRect()) : null] .concat(readingEls(st).map(function (e) { return box(e.getBoundingClientRect()); })) : []);
     }
+
+    /* the card can change height after it was placed (state badge, hint, fonts): place it again */
+    var roPending = false;
+    if (window.ResizeObserver) new ResizeObserver(function () {
+        if (roPending) return; roPending = true;
+        requestAnimationFrame(function () { roPending = false; relayout(); });
+    }).observe(coach);
 
     function tick() {
         if (S.finished) return;

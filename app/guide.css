@@ -69,7 +69,9 @@ html.eg-emulator .guide-back-fab.eg-hidden-fab { display: none !important; }
 .eg-top-kicker { font-size: .72em; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; opacity: .9; }
 .eg-top-name { font-family: "Outfit", system-ui, sans-serif; font-weight: 700; font-size: 1.05em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 /* keep the Binventory window clear of the top bar */
-html.eg-emulator body { padding-top: 3.4em; box-sizing: border-box; }
+html.eg-emulator body { padding-top: calc(var(--eg-top, 3.4em) + 12px); padding-bottom: 12px; box-sizing: border-box; }
+/* centered composition: room for the docked guide card left of the window (set by guide.js) */
+html.eg-emulator.eg-composed .page-wrap { margin-left: var(--eg-dock-w, 0px); max-width: min(1100px, calc(100vw - 32px - var(--eg-dock-w, 0px))); }
 
 /* ================= coach card ================= */
 .eg-coach {
@@ -411,6 +413,10 @@ html.eg-hc .eg-help { color: #000; }
 .eg-coach--min .eg-title { font-size: 1.05em; }
 .eg-coach--min .eg-actions { margin-top: 0; }
 .eg-coach--min .eg-btn { min-height: 2.2em; }
+/* narrow compact card for short screens at large text */
+.eg-coach.eg-coach--narrow { width: min(13em, calc(100vw - 24px)); }
+.eg-coach--narrow .eg-coach-head { flex-wrap: wrap; }
+.eg-coach--narrow .eg-actions { flex-wrap: wrap; }
 .eg-hand--up svg { transform: rotate(180deg); }
 html.eg-hc .eg-min { background: #000; color: #fff; border-color: #fff; }
 /* replica panels of installer windows in reading lessons */

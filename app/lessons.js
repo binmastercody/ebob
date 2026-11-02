@@ -98,6 +98,8 @@
           blurb: "Inventory reports, history and the Site Status Report." },
         { id: "admin", title: "Users, backup and upgrades", icon: "users", acc: "#4b5563", tint: "#f1f2f4",
           blurb: "Users, backups and upgrades." },
+        { id: "advanced", title: "Advanced", icon: "layers", acc: "#0e7490", tint: "#e7f6f9",
+          blurb: "Advanced installs: an external SQL Server database, or more than one site." },
         { id: "trouble", title: "Troubleshooting", icon: "wrench", acc: "#b91c1c", tint: "#fdecec",
           blurb: "Common problems and how to fix them." }
     ];
@@ -510,6 +512,7 @@
     function closed() { var i = inst(); return !!i && !i.open() && !i.state.rebooting; }
     function boxChecked(id) { return function () { var e = document.querySelector("#" + id + " input"); return !!e && e.checked; }; }
     var HOST_IP = "192.168.1.20";
+    var EXT_SQL_IP = "192.168.1.30";
     function next(page, msg) { return { title: "Next", msg: msg || "Click <b>Next &gt;</b>.", target: "#btnNext", do: "click", until: onPage(page) }; }
     var I_LICENSE = [
         { title: "License agreement", msg: "Read the license agreement. <b>Next &gt;</b> stays off until you accept it.", target: "#txtLicense", do: "read" },
@@ -537,16 +540,16 @@
         outro: "Install the Host PC first, then each Client PC.",
         doc: [
             { title: "Binventory has three parts", html: "<ol><li><b>Workstation Client.</b> The program you use to see vessels, set things up and run reports.</li><li><b>eBob Services.</b> The Engine and Scheduler services. They talk to the sensors, run schedules and send email alerts. Each site needs one PC running them.</li><li><b>SQL Server.</b> The database, SQL Server 2022 Express, instance name BINVENTORY. One system has one database.</li></ol>" },
-            { title: "Pick an install type", html: "<p>The installer's first page has three choices under <b>Installation Type</b>:</p><ul><li><b>Server/Host Install.</b> All three parts. Use it on a stand-alone PC, or on the Host PC of a networked system.</li><li><b>Client Install.</b> Workstation Client only. It connects to the Host PC's database.</li><li><b>Advanced.</b> Pick the parts: <b>Workstation Client</b> (always on), <b>eBob Services</b> and <b>SQL Server</b>. Use it for a PC that runs a site's services but not the database.</li></ul>" },
+            { title: "Pick an install type", html: "<p>The installer's first page has three choices under <b>Installation Type</b>:</p><ul><li><b>Server/Host Install.</b> All three parts. Use it on a stand-alone PC, or on the Host PC of a networked system.</li><li><b>Client Install.</b> Workstation Client only. It connects to the Host PC's database.</li><li><b>Advanced.</b> Pick the parts: <b>Workstation Client</b> (always on), <b>eBob Services</b> and <b>SQL Server</b>. Use it only to point to an external SQL Server database or to add a site. See the Advanced section.</li></ul>" },
             { title: "Check every PC", html: "<ul><li>Windows 11 Pro, Enterprise or Home on a workstation or stand-alone PC, or Windows Server 2016, 2019, 2022 or 2025 on a server. Windows 10 is not supported (end of support October 2025).</li><li>A 64-bit (x64) processor.</li><li>Free disk space: about 4 GB for a Server/Host Install and about 1 GB for a Client Install. The installer shows the exact amount.</li><li>A Windows administrator account. The installer will not run without one.</li></ul><p>The Host PC must also meet the SQL Server 2022 requirements on the next page.</p>" },
             { title: "The Host PC", html: SQL2022_PANEL },
             { title: "A way to reach the sensors", html: "<p>The PC that runs a site's eBob Services needs one of these:</p><ul><li>an RS-232 serial port and an RS-232 to RS-485 interface</li><li>a USB port and a USB to RS-485 adaptor. Leave <b>Install USB Drivers?</b> checked.</li><li>a network connection and a serial device server</li></ul><p>Email alerts need access to an SMTP email server.</p>" },
             { title: "Networked systems", html: "<p>Install the Host PC first and leave it on. Write down its IPv4 address. Every other PC needs it when you click <b>Connect</b>.</p><p>The installer adds these Windows Firewall rules on the Host PC:</p><ul><li><b>eBob Engine (TCP-8093)</b>: TCP port 8093</li><li><b>SQL Server (BINVENTORY)</b>: the SQL Server program, sqlservr.exe</li><li><b>SQL Server Browser (UDP-1434)</b>: UDP port 1434</li></ul><p>If a firewall other than Windows Firewall is in use, open the same ports in it.</p>" }
         ] });
 
-    L.push({ id: "install", source: "Binventory Installer v5.5", section: "setup", page: "installer", installer: { mode: "fresh" }, title: "Installing on one PC", manual: "4.3",
-        desc: "Server/Host Install: Workstation, eBob Services and SQL Server on one PC.",
-        outro: "Binventory is installed. Next, tour the Workstation and set up the system.",
+    L.push({ id: "install", source: "Binventory Installer v5.5", section: "setup", page: "installer", installer: { mode: "fresh" }, title: "Server/Host Install", manual: "4.3",
+        desc: "The main PC. Installs the Workstation Client, eBob Services and the SQL Server database.",
+        outro: "This PC is the Host PC. Other PCs connect to it with Client Install. Next, tour the Workstation and set up the system.",
         steps: [
             { title: "Binventory Installer", msg: "Run the installer as an administrator. The first page asks for the installation type.", target: "#grpInstallType", do: "read" },
             { title: "Server/Host Install", msg: "Click <b>Server/Host Install</b>. It installs the Workstation Client, eBob Services and SQL Server on this PC.", target: "#radServer", do: "click" },
@@ -562,8 +565,8 @@
             { title: "Install", msg: "Click <b>Install</b>.", target: "#btnNext", do: "click", until: onPage(4) }
         ], I_RUN()) });
 
-    L.push({ id: "install-import", source: "Binventory Installer v5.5", section: "setup", page: "installer", installer: { mode: "fresh" }, title: "Importing a project during install", manual: "4.3, 7",
-        desc: "Load a project DAT file from another system while installing.",
+    L.push({ id: "install-import", source: "Binventory Installer v5.5", section: "setup", page: "installer", installer: { mode: "fresh" }, title: "Server/Host Install with a project file", manual: "4.3, 7",
+        desc: "Optional. Load a project DAT file from another system during a Server/Host Install.",
         outro: "The project is imported into the new database during the install.",
         steps: [
             { title: "Server/Host Install", msg: "Importing needs SQL Server on this PC. Click <b>Server/Host Install</b>.", target: "#radServer", do: "click" },
@@ -579,9 +582,9 @@
             { title: "Install", msg: "Click <b>Install</b>.", target: "#btnNext", do: "click", until: onPage(4) }
         ], I_RUN()) });
 
-    L.push({ id: "network-install", source: "Binventory Installer v5.5", section: "setup", page: "installer", installer: { mode: "fresh" }, title: "Installing a networked system", manual: "4.4",
-        desc: "Client Install on each Workstation PC, connected to the Host PC.",
-        outro: "This PC uses the Host PC's database. For a PC that runs a site's services, see Installing a site PC.",
+    L.push({ id: "network-install", source: "Binventory Installer v5.5", section: "setup", page: "installer", installer: { mode: "fresh" }, title: "Client Install", manual: "4.4",
+        desc: "A workstation PC. Connects to the Host PC's database by IP address.",
+        outro: "This PC uses the Host PC's database. Repeat Client Install on each workstation PC.",
         steps: [
             { title: "Install the Host PC first", msg: "Do a <b>Server/Host Install</b> on the Host PC first and leave it on. Then run the installer on each other PC.", target: "#grpInstallType", do: "read" },
             { title: "Client Install", msg: "Click <b>Client Install</b>. It installs only the Workstation Client.", target: "#radClient", do: "click", until: function () { return visible("#txtServerIP"); } }
@@ -593,9 +596,9 @@
             { title: "Install", msg: "Click <b>Install</b>.", target: "#btnNext", do: "click", until: onPage(4) }
         ], I_RUN()) });
 
-    L.push({ id: "install-site", source: "Binventory Installer v5.5", section: "setup", page: "installer", installer: { mode: "fresh" }, title: "Installing a site PC", manual: "4.4",
-        desc: "Advanced install with eBob Services, assigned to one site.",
-        outro: "Each site needs one PC with eBob Services assigned to it.",
+    L.push({ id: "install-site", source: "Binventory Installer v5.5", section: "advanced", page: "installer", installer: { mode: "fresh" }, title: "Advanced: add a site", manual: "4.4",
+        desc: "More than one site. Install eBob Services on a PC at the new site and assign it to that site.",
+        outro: "Each site needs one PC with eBob Services assigned to it. All sites share the Host PC's database.",
         steps: [
             { title: "Advanced", msg: "Click <b>Advanced</b>.", target: "#radCustom", do: "click", until: function () { return visible("#chkEngineScheduler"); } },
             { title: "Pick the parts", msg: "<b>Workstation Client</b> is always installed. <b>eBob Services</b> runs the Engine and Scheduler. <b>SQL Server</b> installs a database.", target: "#pnlCustomOptions", do: "read" },
@@ -604,10 +607,33 @@
             next(1)
         ], I_LICENSE, [
             next(15),
-            { title: "Site Setup", msg: "Each site needs one PC running its Engine Service.", target: "#lblEngineSiteDescription", do: "read" },
+            { title: "Site Setup", msg: "Each site needs one PC running its Engine Service. Pick the site this PC serves. For every other site, do an <b>Advanced &gt; eBob Services</b> install on a PC there.", target: "#lblEngineSiteDescription", do: "read" },
             { title: "Pick the site", msg: "Choose <b>North Plant</b>.", target: "#cmbEngineSite", do: "select", value: "North Plant" },
             next(3),
             { title: "USB drivers", msg: "Leave <b>Install USB Drivers?</b> checked if the sensors connect through a USB adaptor.", target: "#chkInstallUsbDrivers", do: "read" },
+            { title: "Install", msg: "Click <b>Install</b>.", target: "#btnNext", do: "click", until: onPage(4) }
+        ], I_RUN()) });
+
+    L.push({ id: "install-external-sql", source: "Binventory Installer v5.5", section: "advanced", page: "installer", installer: { mode: "fresh" }, title: "Advanced: use an external SQL Server", manual: "4.4",
+        desc: "Point this PC to a SQL Server database that is not on a Binventory Host PC.",
+        outro: "This PC uses the database on the external SQL Server. Other PCs connect to the same address.",
+        steps: [
+            { title: "Before you start", msg: "The external SQL Server must already have the <b>eBob</b> database and its <b>eBob</b> SQL login. Ask IT for the server's IPv4 address.", target: "#grpInstallType", do: "read" },
+            { title: "Advanced", msg: "Click <b>Advanced</b>.", target: "#radCustom", do: "click", until: function () { return visible("#chkEngineScheduler"); } },
+            { title: "Pick the parts", msg: "<b>Workstation Client</b> is always installed. Check <b>eBob Services</b> if this PC talks to the sensors.", target: "#pnlCustomOptions", do: "read" },
+            { title: "eBob Services", msg: "For practice, check <b>eBob Services</b>.", target: "#chkEngineScheduler", do: "click", until: boxChecked("chkEngineScheduler") },
+            { title: "SQL Server", msg: "Leave <b>SQL Server</b> unchecked. The database is on the external server, so no database is installed here.", target: "#chkSqlServer", do: "read" },
+            { title: "Server address", msg: "With SQL Server unchecked, <b>IP Address from Host PC</b> appears. Here it means the external SQL Server.", target: "#pnlServerIP", do: "read" },
+            { title: "Type the address", msg: "For practice, type <b>" + EXT_SQL_IP + "</b>.", target: "#txtServerIP", do: "type", value: EXT_SQL_IP },
+            { title: "Connect", msg: "Click <b>Connect</b>. The installer tries the <b>BINVENTORY</b> instance, then <b>EBOB</b>, then the server's default instance.", target: "#btnTestConnection", do: "click", until: hasDialog },
+            { title: "IP Verified", msg: "The installer found the eBob database. Click <b>OK</b>.", target: "#mbOK", do: "click", until: noDialog },
+            { title: "Connected", msg: "This server uses the default instance, so the box shows only <b>" + EXT_SQL_IP + "</b>. A named instance would show as address\\BINVENTORY or address\\EBOB.", target: "#txtServerIP", do: "read" },
+            next(1)
+        ].concat(I_LICENSE, [
+            next(15),
+            { title: "Site Setup", msg: "With eBob Services checked, pick the site this PC serves.", target: "#lblEngineSiteDescription", do: "read" },
+            { title: "Pick the site", msg: "Choose <b>Current Location</b>.", target: "#cmbEngineSite", do: "select", value: "Current Location" },
+            next(3),
             { title: "Install", msg: "Click <b>Install</b>.", target: "#btnNext", do: "click", until: onPage(4) }
         ], I_RUN()) });
 
@@ -803,11 +829,12 @@
         ]) });
 
     /* final order inside each section */
-    var ORDER = ["plan", "install", "install-import", "network-install", "install-site", "tour", "system-setup", "site-setup", "sensor-network", "add-vessel", "more-vessels", "measure",
+    var ORDER = ["plan", "install", "network-install", "install-import", "tour", "system-setup", "site-setup", "sensor-network", "add-vessel", "more-vessels", "measure",
         "level-alarms", "email-setup", "contacts", "email-alerts",
         "vessel-details", "groups", "schedules", "temporary-group",
         "inventory-report", "history-report", "site-status-report",
         "users", "export", "upgrade", "repair",
+        "install-site", "install-external-sql",
         "ts-comm-error", "ts-readings-wrong", "ts-no-schedule", "ts-no-email", "ts-pending-unknown", "ts-db-read-only", "ts-installer"];
     L.sort(function (a, b) { return ORDER.indexOf(a.id) - ORDER.indexOf(b.id); });
     L.forEach(function (l) { if (l.id === "measure") { l.section = "setup"; } });

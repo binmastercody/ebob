@@ -5,7 +5,7 @@ Open `index.html` in a browser. Everything runs from local files (file://), with
 ## Files
 - `index.html`: lesson menu with sections, progress, search and the Setup path
 - `emulator.html`: the Binventory Workstation emulator with the guide layer (`?lesson=<id>`, or `?tutorial=db-read-only` / `pending-unknown-status`)
-- `installer.html?lesson=<id>`: a working copy of the Binventory Installer v5.5 wizard, used by the install, import, client, site setup, upgrade and repair lessons (`?mode=fresh|upgrade|repair` to try it without a lesson)
+- `installer.html?lesson=<id>`: a working copy of the Binventory Installer v5.5 wizard, used by the Server/Host Install, Client Install, project import, Advanced (external SQL Server, add a site), upgrade and repair lessons (`?mode=fresh|upgrade|repair` to try it without a lesson)
 - `doc.html?lesson=<id>`: reading lessons (planning and PC requirements, installer troubleshooting)
 - `app/installer-sim.js`, `app/installer-text.js`: the installer copy. Labels, messages and the license text are taken from the installer source.
 - `app/lessons.js`: every lesson (sections, steps, targets, manual references)
@@ -25,10 +25,16 @@ Add an `L.push({...})` in `app/lessons.js` and put its id in the `ORDER` list.
 
 ## Testing (from /workspace/ebob/tools)
 - `node walk.mjs <lesson ids...>`: clicks through lessons the way a person would
-- `node verify.mjs`: checks the menu, pacing, font controls, scenarios, density and weight, reading lessons and links, and takes screenshots
+- `node verify.mjs`: checks the menu (7 sections, Setup install path, Advanced section), pacing, font controls, scenarios, density and weight, reading lessons and links, and centering (card + window, home and reading pages) at 1024x576, 1280x720, 1440x900 and 1920x1080 at 100% and 150% text
 - `node overlap.mjs`: walks every guided lesson and both scenarios at 1440x900 and 1280x720, at 100% and 150% text, and fails if the guide card covers a target, the red circle, the hand or a reading
 - `node overlap-dynamic.mjs`: the same check after text size changes and window resizes
-- `node shots-v2.mjs`: home, installer and guide placement screenshots in /workspace/ebob/shots
+- `node shots-v2.mjs`, `node shots-v3.mjs`: screenshots in /workspace/ebob/shots
+- `node center-probe.mjs <page> <step index>`: prints card and window margins at each screen size
+
+## Lesson layout
+- Setup install path: Before you install, Server/Host Install (the main PC with the database), Client Install (a workstation that connects to the Host PC by IP address and Connect), then the optional Server/Host Install with a project file.
+- Advanced section (before Troubleshooting): Advanced: add a site, and Advanced: use an external SQL Server. Both use the installer's Advanced option (Workstation Client, eBob Services, SQL Server). With SQL Server unchecked the installer asks for IP Address from Host PC and tries the BINVENTORY instance, then EBOB, then the default instance. The practice Host PC is 192.168.1.20 and the practice external SQL Server is 192.168.1.30.
 
 ## Guide placement
+When the card and the window fit side by side, the page reserves room left of the window (`html.eg-composed`, `--eg-dock-w`) so card + gap + window are centered as one unit, and the window is vertically centered below the top bar (`--eg-top`). This is decided per screen size and text size, not per step, so the window does not jump. The installer shrinks its zoom (not below 80%) to make room; the Workstation window narrows to no less than 960px. Otherwise the window is centered and the card floats over it.
 The card docks beside the window when there is room, otherwise it moves to the first clear spot. If nothing is clear it shrinks to a bar. **Hide text** shrinks it by hand. It is re-placed on every step, dialog, resize and text size change.

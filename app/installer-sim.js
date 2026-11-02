@@ -12,6 +12,7 @@
     var lesson = window.EbobLessons && sp.get("lesson") ? window.EbobLessons.byId(sp.get("lesson")) : null;
     var MODE = (lesson && lesson.installer && lesson.installer.mode) || sp.get("mode") || "fresh";
     var HOST_IP = "192.168.1.20";                       /* the sample Host PC that answers Connect */
+    var EXT_SQL_IP = "192.168.1.30";                    /* a sample external SQL Server on its default instance */
     var EXISTING = MODE === "upgrade" ? "5.4.2" : MODE === "repair" ? "5.4.9" : "";
     var SITES = ["Current Location", "North Plant"];
     var DATS = [
@@ -23,6 +24,7 @@
     window.EbobGuideHost = {
         shellId: "instShell",
         waitText: "Waiting for the installer",
+        refit: function () { if (window.__instReady) fit(); },
         ready: function () { return !!window.__instReady; }
     };
 
@@ -415,8 +417,9 @@
         var btn = this; btn.disabled = true; show("lblConnectionProgress", true); S.connecting = true;
         setTimeout(function () {
             S.connecting = false; show("lblConnectionProgress", false);
-            if (ip === HOST_IP) {
-                S.connected = true; S.connString = ip + "\\BINVENTORY";
+            /* the installer tries ip\\BINVENTORY, then ip\\EBOB, then the default instance (ip) */
+            if (ip === HOST_IP || ip === EXT_SQL_IP) {
+                S.connected = true; S.connString = ip === HOST_IP ? ip + "\\BINVENTORY" : ip;
                 show("btnTestConnection", false);
                 var t = $("txtServerIP"); t.value = S.connString; t.disabled = true; t.classList.add("iw-locked");
                 show("btnChangeIP", true);
@@ -516,16 +519,33 @@
 
     function fit() {
         var top = (document.querySelector(".eg-topbar") || { offsetHeight: 52 }).offsetHeight;
-        var z = Math.min((window.innerHeight - top - 64) / 482, (window.innerWidth * 0.6) / 560, 1.45);
+        /* composed: the guide card sits in a reserved slot left of the window, so leave room for it */
+        var comp = document.documentElement.classList.contains("eg-composed");
+        var dockW = comp ? parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--eg-dock-w")) || 0 : 0;
+        var zw = comp ? (window.innerWidth - 40 - dockW) / 560 : (window.innerWidth * 0.6) / 560;
+        var z = Math.min((window.innerHeight - top - 40) / 482, zw, 1.45);
         z = Math.max(0.8, Math.round(z * 100) / 100);
         Z = z;
         $("instShell").style.zoom = z;
+        /* the margin is inside the zoom, so divide to get dockW screen pixels */
+        $("instShell").style.marginLeft = comp ? (dockW / z) + "px" : "0px";
         var w = $("instShell"), l = $("mbLayer");
         if (!w.hidden) {
             var r = w.getBoundingClientRect(), d = desk.getBoundingClientRect();
             l.style.left = (r.left - d.left) + "px"; l.style.top = (r.top - d.top) + "px"; l.style.width = r.width + "px"; l.style.height = r.height + "px";
         }
         mount();
+        /* hide the practice note when the window or the guide card would sit on it */
+        var note = document.querySelector(".inst-note");
+        if (note) {
+            note.style.visibility = "";
+            var nr = note.getBoundingClientRect(), hit = false;
+            [w, document.querySelector(".eg-coach")].forEach(function (e) {
+                if (!e || e.hidden) return; var q = e.getBoundingClientRect();
+                if (q.width && nr.left < q.right && nr.right > q.left && nr.top < q.bottom && nr.bottom > q.top) hit = true;
+            });
+            if (hit) note.style.visibility = "hidden";
+        }
     }
     window.addEventListener("resize", fit);
     setTimeout(function () {
