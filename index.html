@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#5b3fa6">
-<title>Binventory eBob Guide</title>
+<title>Binventory Training Guide</title>
 <link rel="icon" href="assets/eBob-V5-Application.ico">
 <script>
 /* apply saved text size and contrast before first paint */
@@ -23,28 +23,24 @@
   <section class="eg-hero" aria-labelledby="heroTitle">
     <div class="eg-hero-band">
       <img src="app/binmaster-logo-white.png" alt="BinMaster">
-      <span class="eg-hero-tag">Binventory Workstation V5<br>Interactive guide</span>
+      <span class="eg-hero-tag">Binventory Workstation V5</span>
     </div>
     <div class="eg-hero-main">
       <div>
-        <h1 id="heroTitle">Learn Binventory by doing it</h1>
-        <p class="eg-hero-lead">Practice on a working copy of Binventory Workstation. Each lesson circles what to click, waits until you are ready, and checks each step before moving on.</p>
+        <h1 id="heroTitle">Binventory Training Guide</h1>
+        <p class="eg-hero-lead">Step-by-step lessons for setting up and troubleshooting Binventory Workstation.</p>
         <div class="eg-hero-actions">
           <a class="eg-cta eg-cta--primary" id="ctaSetup" href="#sec-setup"></a>
-          <a class="eg-cta eg-cta--red" href="#sec-trouble" data-open="trouble"><svg class="eg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.2L4 16.8V20h3.2l5.3-5.3a4 4 0 0 0 5.2-5.4l-2.6 2.6-2.4-.6-.6-2.4z"/></svg>Troubleshoot a problem</a>
+          <a class="eg-cta eg-cta--red" href="#sec-trouble" data-open="trouble"><svg class="eg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.2L4 16.8V20h3.2l5.3-5.3a4 4 0 0 0 5.2-5.4l-2.6 2.6-2.4-.6-.6-2.4z"/></svg>Troubleshooting</a>
           <a class="eg-cta eg-cta--secondary" href="emulator.html?tutorial=free-mode">Free practice</a>
         </div>
       </div>
       <figure class="eg-preview" style="margin:0">
         <img src="app/preview.png" alt="Binventory Workstation main screen with vessel panels showing level, volume and weight">
-        <figcaption>The sample site: 32 vessels on a SmartBob network</figcaption>
+        <figcaption>Sample site with 32 vessels</figcaption>
       </figure>
     </div>
-    <ul class="eg-features">
-      <li><svg class="eg-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></svg><span><b>Follow the red circle</b>Only the circled item responds, so a stray click never skips a step.</span></li>
-      <li><svg class="eg-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l2.5 2"/></svg><span><b>Go at your pace</b>Choose Normal, Slow, or Step by step, where nothing moves until you press Next.</span></li>
-      <li><svg class="eg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 18 9 6l5 12M6 14h6M15 18l3-7 3 7M16 16h4"/></svg><span><b>Make text bigger</b>Use A+ and A&minus; at the top, or Display for contrast and motion.</span></li>
-    </ul>
+    <p class="eg-help">Click the item inside the red circle to continue. Use A&minus; and A+ to change text size.</p>
   </section>
 
   <section class="eg-card" aria-labelledby="lessonsTitle" id="lessons">
@@ -58,7 +54,7 @@
     <div class="eg-search" role="search">
       <svg class="eg-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg>
       <label for="lessonSearch" class="eg-sr-only">Search lessons</label>
-      <input id="lessonSearch" type="search" placeholder="Search lessons, for example alarm, vessel or email" autocomplete="off">
+      <input id="lessonSearch" type="search" placeholder="Search lessons" autocomplete="off">
       <span class="eg-search-key" aria-hidden="true">/</span>
     </div>
     <p class="eg-search-count" id="searchCount" role="status" aria-live="polite"></p>
@@ -66,7 +62,7 @@
   </section>
 
   <footer class="eg-foot">
-    <span>Lessons follow the Binventory V5.4.9 Operator's Manual (925-0267 Rev M). This is a practice copy: nothing here connects to a real system, and every lesson starts from the same sample site.</span>
+    <span>Based on the Binventory V5.4.9 Operator's Manual (925-0267 Rev M). This practice copy does not connect to a real system. Each lesson starts from the same sample site.</span>
     <button type="button" id="resetProgress">Reset my progress</button>
   </footer>
 </main>
@@ -83,7 +79,7 @@
   function openState() { try { return JSON.parse(localStorage.getItem(OPEN_KEY) || "null"); } catch (e) { return null; } }
   function saveOpen(o) { try { localStorage.setItem(OPEN_KEY, JSON.stringify(o)); } catch (e) {} }
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
-  function href(l) { return l.kind === "doc" ? "doc.html?lesson=" + l.id : l.scenario ? "emulator.html?tutorial=" + l.scenario + "&fresh=1" : "emulator.html?tutorial=free-mode&lesson=" + l.id; }
+  function href(l) { return l.page === "installer" ? "installer.html?lesson=" + l.id : l.kind === "doc" ? "doc.html?lesson=" + l.id : l.scenario ? "emulator.html?tutorial=" + l.scenario + "&fresh=1" : "emulator.html?tutorial=free-mode&lesson=" + l.id; }
   var I = {
     rocket: '<path d="M5 15c-1.5 1.5-2 4-2 6 2 0 4.5-.5 6-2M9 15l-3-3c1-3 3.5-7 9-8.5 1.5-.4 3.5-.5 5.5-.5 0 2-.1 4-.5 5.5C18.5 14 15 16 12 17z"/><circle cx="15" cy="9" r="1.8"/>',
     bell: '<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15zM10 20.5a2 2 0 0 0 4 0"/>',
@@ -109,7 +105,7 @@
     ["Database Read Only", "Data shows but measurements cannot start. The Engine service may be stopped, or Site Setup has the wrong host IP."],
     ["Error", "One or more errors. Hover over the message or open Vessel Details for more."]
   ];
-  var GROUPS = { setup: "Get started", alerts: "Everyday tasks", trouble: "When something is wrong" };
+  var GROUPS = {};
   var open = openState() || { setup: true };
   var list = document.getElementById("lessonList");
 
@@ -118,7 +114,7 @@
     q = (q || "").trim().toLowerCase();
     LS.sections.forEach(function (sec) {
       var ls = LS.lessons.filter(function (l) { return l.section === sec.id; });
-      var hits = ls.filter(function (l) { return !q || (l.title + " " + l.desc + " " + sec.title + " " + (l.manual || "")).toLowerCase().indexOf(q) >= 0; });
+      var hits = ls.filter(function (l) { return !q || (l.title + " " + l.desc + " " + sec.title + " " + (l.manual || "") + " " + (l.source || "")).toLowerCase().indexOf(q) >= 0; });
       if (q && !hits.length) return;
       shown += hits.length;
       var done = ls.filter(function (l) { return p[l.id]; }).length;
@@ -146,7 +142,7 @@
           esc((isPath ? "Step " + n + ": " : "") + l.title + ". " + l.desc + " " + l.stepCount + " steps, about " + l.minutes + " minutes." + (isDone ? " Done." : "") + (isNext ? " Next up." : "")) + '">' +
           '<span class="eg-lmark" aria-hidden="true">' + (isDone ? ico("check") : (isPath ? n : "")) + "</span>" +
           '<span class="eg-ltext"><span class="eg-ltitle">' + esc(l.title) + '</span><span class="eg-ldesc">' + esc(l.desc) + "</span>" +
-          (l.manual ? '<span class="eg-lref">Manual ' + esc(l.manual) + (l.scenario ? ". Guided scenario" : l.kind === "doc" ? ". Reading lesson" : ". Hands-on practice") + "</span>" : "") + "</span>" +
+          (l.manual || l.source ? '<span class="eg-lref">' + (l.source ? esc(l.source) : "Manual " + esc(l.manual)) + (l.scenario ? ". Guided scenario" : l.kind === "doc" ? ". Reading lesson" : ". Hands-on practice") + "</span>" : "") + "</span>" +
           '<span class="eg-lside" aria-hidden="true">' + (isNext ? '<span class="eg-ltag">Next</span>' : "") +
           (isDone ? '<span class="eg-ldone">' + ico("check") + "Done</span>" : "") +
           '<span class="eg-lmeta">' + ico("clock") + l.stepCount + " steps, about " + l.minutes + " min</span></span>" +
@@ -166,7 +162,7 @@
       }
       html += "</div></div>";
     });
-    if (q && !shown) html = '<div class="eg-empty"><p><b>No lessons match "' + esc(q) + '".</b></p><p>Try a word like vessel, alarm, email, report or user.</p></div>';
+    if (q && !shown) html = '<div class="eg-empty"><p><b>No lessons match "' + esc(q) + '".</b></p><p>Try vessel, alarm, email, report or user.</p></div>';
     list.innerHTML = html;
     document.getElementById("searchCount").textContent = q ? shown + (shown === 1 ? " lesson matches" : " lessons match") : "";
 
@@ -181,7 +177,7 @@
     var nx = setupL.filter(function (l) { return !p[l.id]; })[0];
     var cta = document.getElementById("ctaSetup");
     cta.href = href(nx || setupL[0]);
-    cta.innerHTML = ico("play") + (nx ? (nx === setupL[0] ? "Start setup" : "Continue setup: " + esc(nx.title)) : "Review setup");
+    cta.innerHTML = ico("play") + (nx ? (nx === setupL[0] ? "Start setup" : "Continue setup") : "Review setup");
   }
 
   list.addEventListener("click", function (e) {

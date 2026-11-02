@@ -10,9 +10,21 @@
  */
 (function () {
     "use strict";
-    var D = window.EbobDisplay, LS = window.EbobLessons;
+    var D = window.EbobDisplay, LS = window.EbobLessons, bootAt = Date.now();
     if (!D || !LS) return;
     var H = LS.helpers;
+    /* the page hosting the lesson: the Binventory emulator by default, or the installer replica */
+    var HOST = window.EbobGuideHost || {
+        shellId: "appShell",
+        ready: function () {
+            var ov = document.getElementById("startupOverlay");
+            if (ov && ov.classList.contains("startup-overlay--visible")) return false;
+            var grid = document.getElementById("vesselGrid");
+            if (!grid || !grid.children.length) return false;
+            if (grid.querySelector(".vessel--initializing") && Date.now() - bootAt < 20000) return false;
+            return true;
+        }
+    };
     var PKEY = "ebob-guide-progress";
     var sp = new URLSearchParams(location.search);
     var lessonId = sp.get("lesson");
@@ -66,7 +78,7 @@
     coach.className = "eg-ui eg-coach";
     coach.setAttribute("aria-label", "Lesson guide");
     coach.innerHTML =
-        '<div class="eg-coach-head"><span class="eg-goal">' + esc(lesson.title) + '</span><span class="eg-count" aria-live="off"></span></div>' +
+        '<div class="eg-coach-head"><span class="eg-goal">' + esc(lesson.title) + '</span><span class="eg-count" aria-live="off"></span><button type="button" class="eg-min" aria-pressed="false"><span>Hide text</span></button></div>' +
         '<div class="eg-bar" role="progressbar" aria-label="Lesson progress" aria-valuemin="0"><span class="eg-bar-fill"></span></div>' +
         '<div class="eg-state" aria-hidden="true"><span class="eg-state-dot"></span><span class="eg-state-text"></span></div>' +
         '<div class="eg-live" aria-live="polite" aria-atomic="true"><h2 class="eg-title" tabindex="-1"></h2><p class="eg-msg"></p></div>' +
@@ -80,7 +92,8 @@
     var Q = function (s) { return coach.querySelector(s); };
     var elCount = Q(".eg-count"), elBar = Q(".eg-bar"), elFill = Q(".eg-bar-fill"), elTitle = Q(".eg-title"), elMsg = Q(".eg-msg"),
         elHint = Q(".eg-hint"), elState = Q(".eg-state"), elStateText = Q(".eg-state-text"),
-        bBack = Q(".eg-back"), bDo = Q(".eg-doit"), bNext = Q(".eg-next");
+        bBack = Q(".eg-back"), bDo = Q(".eg-doit"), bNext = Q(".eg-next"), bMin = Q(".eg-min");
+    bMin.addEventListener("click", function () { userMin = !S.compact; lastSpot = null; tick(); });
     elBar.setAttribute("aria-valuemax", String(steps.length));
 
     var ring = document.createElement("div");
@@ -125,18 +138,26 @@
         return false;
     }
     function verb(step) {
-        return { click: "Your turn: click", type: "Your turn: type", select: "Your turn: choose", check: "Your turn: check the box",
-                 uncheck: "Your turn: uncheck the box", read: "Read, then press Next", wait: "Watch" }[step.do] || "Your turn";
+        return { click: "Click", type: "Type", select: "Choose", check: "Check the box",
+                 uncheck: "Uncheck the box", read: "Read, then press Next", wait: "Watch" }[step.do] || "Action";
     }
     function setState(kind, text) {
         elState.className = "eg-state eg-state--" + kind;
         elStateText.textContent = text;
         coach.setAttribute("data-phase", kind);
+        relayout();
+    }
+    /* re-place the card as soon as its text or size changes, not on the next tick */
+    function relayout() {
+        if (!coach || S.finished || S.phase === "loading" || coach.hidden) return;
+        var i = S.review >= 0 ? S.review : S.idx, st = steps[i], t = target(st);
+        placeCoach(vis(t) ? t : null, st);
     }
     var hintTimer = 0;
     function hint(text, strong) {
         elHint.textContent = text;
         elHint.classList.add("on");
+        relayout();
         clearTimeout(hintTimer);
         hintTimer = setTimeout(function () { elHint.classList.remove("on"); elHint.textContent = ""; }, 3200);
         if (strong && !D.reduceMotion()) {
@@ -150,10 +171,11 @@
         var st = steps[i];
         elCount.textContent = (reviewing ? "Reviewing step " : "Step ") + (i + 1) + " of " + steps.length;
         elTitle.textContent = st.title;
-        elMsg.innerHTML = st.msg + (st.do === "type" ? ' <span class="eg-tip">Tip: click the box, select the old text, then type.</span>' : "");
+        elMsg.innerHTML = (typeof st.msg === "function" ? st.msg() : st.msg) + (st.do === "type" ? ' <span class="eg-tip">Tip: click the box, select the old text, then type.</span>' : "");
         elFill.style.width = ((S.idx + (S.phase === "done" ? 1 : 0)) / steps.length * 100) + "%";
         elBar.setAttribute("aria-valuenow", String(S.idx));
         elBar.setAttribute("aria-valuetext", "Step " + (S.idx + 1) + " of " + steps.length);
+        relayout();
     }
     function updateButtons() {
         var st = steps[S.idx];
@@ -172,7 +194,7 @@
 
     function enter(i, opts) {
         S.idx = i; S.phase = "entering"; S.enteredAt = now(); S.clicked = false; S.ack = false; S.missingSince = 0; S.review = -1; S.scrolled = false;
-        ring.className = "eg-ring"; hand.className = "eg-hand";
+        ring.className = "eg-ring"; hand.className = "eg-hand"; lastSpot = null;
         renderText(i, false);
         setState("wait", "Please wait");
         updateButtons();
@@ -188,40 +210,128 @@
         ring.style.height = (r.height + pad * 2) + "px";
         var showHand = st.do !== "read" && st.do !== "wait" && S.phase !== "done" && S.review < 0;
         hand.classList.toggle("on", showHand && ring.classList.contains("on"));
-        hand.style.left = Math.min(window.innerWidth - 50, r.left + Math.min(r.width * 0.6, r.width - 6)) + "px";
-        hand.style.top = Math.min(window.innerHeight - 50, r.top + Math.min(r.height * 0.55, r.height - 4)) + "px";
+        /* the hand sits just outside the target, its fingertip touching the ring, so it never hides the target */
+        var hw = hand.offsetWidth || 40, hh = hand.offsetHeight || 40;
+        var tipX = r.left + Math.min(r.width * 0.6, r.width - 6);
+        var below = r.bottom + pad + hh + 4 <= window.innerHeight;
+        hand.classList.toggle("eg-hand--up", !below);
+        hand.style.left = Math.max(2, Math.min(window.innerWidth - hw - 2, tipX - hw * 0.42)) + "px";
+        hand.style.top = (below ? r.bottom + pad : r.top - pad - hh) + "px";
     }
 
-    function placeCoach(t) {
-        var shell = document.getElementById("appShell");
-        var sr = shell ? shell.getBoundingClientRect() : null;
-        var cw = coach.offsetWidth, ch = coach.offsetHeight, vw = window.innerWidth, vh = window.innerHeight;
-        var topMin = 64;
-        if (sr && sr.width > 0 && sr.left >= cw + 28) {
-            coach.classList.add("eg-coach--dock");
-            coach.style.left = Math.max(12, sr.left - cw - 16) + "px";
-            coach.style.top = Math.max(topMin, Math.min(sr.top, vh - ch - 12)) + "px";
-            coach.style.bottom = "auto";
-            return;
+    /* ---- no-overlap placement ----
+     * The coach card may never cover the circled target, its ring and check badge, the hand,
+     * or a reading the step talks about (step.reading). Candidate spots are tried in order and the
+     * first clear one wins. If nothing is clear the card shrinks to a compact bar and tries again. */
+    function box(r) { return { l: r.left, t: r.top, r: r.right, b: r.bottom }; }
+    /* a top bar button that sits over the circled item steps aside until the item moves */
+    function clearTopbar(rects) {
+        var tb = document.querySelector(".eg-topbar"); if (!tb) return;
+        for (var i = 0; i < tb.children.length; i++) {
+            var ch = tb.children[i]; ch.classList.remove("eg-tb-away");
+            var r = ch.getBoundingClientRect(); if (!r.width) continue;
+            var me = { l: r.left - 4, t: r.top - 4, r: r.right + 4, b: r.bottom + 4 };
+            for (var k = 0; k < rects.length; k++) { var a = rects[k]; if (a && me.l < a.r && me.r > a.l && me.t < a.b && me.b > a.t) { ch.classList.add("eg-tb-away"); break; } }
         }
-        coach.classList.remove("eg-coach--dock");
-        coach.style.left = Math.max(12, (vw - cw) / 2) + "px";
-        var bottomTop = vh - ch - 12;
-        var useTop = false;
+    }
+    function grow(a, p) { return { l: a.l - p, t: a.t - p, r: a.r + p, b: a.b + p }; }
+    function hits(a, b) { return a.l < b.r && a.r > b.l && a.t < b.b && a.b > b.t; }
+    function readingEls(st) {
+        var rd = st && st.reading, out = [];
+        if (!rd) return out;
+        try { rd = typeof rd === "function" ? rd() : document.querySelectorAll(rd); } catch (e) { rd = null; }
+        if (!rd) return out;
+        if (rd.nodeType === 1) rd = [rd];
+        for (var i = 0; i < rd.length; i++) if (rd[i] && vis(rd[i])) out.push(rd[i]);
+        return out;
+    }
+    function avoidRects(t, st) {
+        var list = [];
+        if (t && st && st.ring === false) t = null;
         if (t) {
-            var r = t.getBoundingClientRect();
-            if (r.bottom + 8 > bottomTop && r.top < vh) useTop = true;
-            if (useTop && r.top - 8 < topMin + ch) useTop = r.top > vh / 2 ? true : false;
+            var sc = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--eg-scale")) || 1;
+            list.push(grow(box(t.getBoundingClientRect()), 8 + Math.ceil(16 * sc)));
+            if (hand.classList.contains("on")) list.push(grow(box(hand.getBoundingClientRect()), 4));
         }
-        coach.style.top = (useTop ? topMin : bottomTop) + "px";
+        readingEls(st).forEach(function (e) { list.push(grow(box(e.getBoundingClientRect()), 6)); });
+        return list;
+    }
+    function topLimit() {
+        var tb = document.querySelector(".eg-topbar");
+        return tb ? Math.ceil(tb.getBoundingClientRect().bottom) + 6 : 12;
+    }
+    var lastSpot = null;
+    function findSpot(cw, ch, avoid, shellRect) {
+        var vw = window.innerWidth, vh = window.innerHeight, m = 12, top = topLimit();
+        if (cw > vw - 2 * m || ch > vh - top - m) return null;
+        function clampX(x) { return Math.max(m, Math.min(vw - cw - m, x)); }
+        function clampY(y) { return Math.max(top, Math.min(vh - ch - m, y)); }
+        var c = [];
+        if (lastSpot) c.push({ x: lastSpot.x, y: lastSpot.y, dock: lastSpot.dock });
+        if (shellRect && shellRect.width > 0) {
+            if (shellRect.left >= cw + 28) c.push({ x: shellRect.left - cw - 16, y: shellRect.top, dock: true });
+            if (vw - shellRect.right >= cw + 28) c.push({ x: shellRect.right + 16, y: shellRect.top, dock: true });
+        }
+        c.push({ x: (vw - cw) / 2, y: vh - ch - m }, { x: (vw - cw) / 2, y: top });
+        avoid.forEach(function (a) {
+            var cx = (a.l + a.r) / 2 - cw / 2, cy = (a.t + a.b) / 2 - ch / 2;
+            c.push({ x: cx, y: a.b + 4 }, { x: cx, y: a.t - ch - 4 }, { x: a.r + 4, y: cy }, { x: a.l - cw - 4, y: cy },
+                   { x: a.r + 4, y: a.t }, { x: a.l - cw - 4, y: a.t }, { x: a.r + 4, y: a.b - ch }, { x: a.l - cw - 4, y: a.b - ch });
+        });
+        c.push({ x: m, y: vh - ch - m }, { x: vw - cw - m, y: vh - ch - m }, { x: m, y: top }, { x: vw - cw - m, y: top },
+               { x: m, y: (vh - ch) / 2 }, { x: vw - cw - m, y: (vh - ch) / 2 });
+        for (var i = 0; i < c.length; i++) {
+            var x = clampX(c[i].x), y = clampY(c[i].y);
+            var me = { l: x, t: y, r: x + cw, b: y + ch }, ok = true;
+            for (var k = 0; k < avoid.length; k++) if (hits(me, avoid[k])) { ok = false; break; }
+            if (ok) return { x: x, y: y, dock: !!c[i].dock };
+        }
+        return null;
+    }
+    var userMin = false;
+    function placeCoach(t, st) {
+        var shell = document.getElementById(HOST.shellId);
+        var sr = shell ? shell.getBoundingClientRect() : null;
+        var avoid = avoidRects(t, st);
+        var tries = userMin ? [true] : [false, true];
+        var spot = null, compact = userMin;
+        for (var i = 0; i < tries.length && !spot; i++) {
+            compact = tries[i];
+            coach.classList.toggle("eg-coach--min", compact);
+            /* measure as docked width first, then as the wide card */
+            var dockFirst = !!(sr && sr.width > 0 && (sr.left >= 300 || window.innerWidth - sr.right >= 300));
+            var widths = dockFirst ? [true, false] : [false];
+            for (var w = 0; w < widths.length && !spot; w++) {
+                coach.classList.toggle("eg-coach--dock", widths[w]);
+                var cw = coach.offsetWidth, ch = coach.offsetHeight;
+                spot = findSpot(cw, ch, avoid, widths[w] ? sr : null);
+                if (spot && widths[w] && !spot.dock) spot = null;
+                if (!spot && widths[w]) lastSpot = null;
+            }
+        }
+        if (!spot) {
+            /* nothing is clear: keep the compact bar at the bottom or top, whichever covers less */
+            coach.classList.add("eg-coach--min"); coach.classList.remove("eg-coach--dock");
+            var cw2 = coach.offsetWidth, ch2 = coach.offsetHeight, vh = window.innerHeight;
+            var tr = t ? t.getBoundingClientRect() : null;
+            spot = { x: Math.max(12, (window.innerWidth - cw2) / 2), y: tr && tr.top + tr.height / 2 > vh / 2 ? topLimit() : vh - ch2 - 12 };
+            compact = true;
+        }
+        lastSpot = spot;
+        coach.style.left = Math.round(spot.x) + "px";
+        coach.style.top = Math.round(spot.y) + "px";
         coach.style.bottom = "auto";
+        bMin.setAttribute("aria-pressed", String(userMin));
+        bMin.querySelector("span").textContent = compact ? "Show text" : "Hide text";
+        S.compact = compact;
+        clearTopbar(t && !(st && st.ring === false) ? [box(t.getBoundingClientRect()), ring.classList.contains("on") ? box(ring.getBoundingClientRect()) : null] .concat(readingEls(st).map(function (e) { return box(e.getBoundingClientRect()); })) : []);
     }
 
     function tick() {
         if (S.finished) return;
         if (S.phase === "loading") {
             if (appReady()) { enter(0, { quiet: true }); }
-            else { setState("wait", "Binventory is starting"); placeCoach(null); return; }
+            else { setState("wait", "Binventory is starting"); placeCoach(null, null); return; }
         }
         var i = S.review >= 0 ? S.review : S.idx;
         var st = steps[i];
@@ -234,7 +344,8 @@
                 try { t.scrollIntoView({ block: "center", behavior: D.reduceMotion() ? "auto" : "smooth" }); } catch (e) {}
             }
         }
-        placeCoach(tv ? t : null);
+        if (tv) placeRing(t, st);
+        placeCoach(tv ? t : null, st);
 
         if (S.review >= 0) {
             if (tv) { ring.classList.add("on", "eg-ring--review"); placeRing(t, st); } else { ring.classList.remove("on"); hand.classList.remove("on"); }
@@ -252,15 +363,17 @@
                 hint("The menu closed. Open it again.", false);
                 return;
             }
-            if (S.phase === "ready") setState("wait", "Waiting for Binventory");
+            if (S.phase === "ready") setState("wait", HOST.waitText || "Waiting for Binventory");
             return;
         }
         S.missingSince = 0;
-        if (!ring.classList.contains("on")) {
+        if (!ring.classList.contains("on") && st.ring !== false) {
             ring.classList.add("on");
             ring.classList.toggle("eg-ring--look", st.do === "read" || st.do === "wait");
             ring.style.setProperty("--eg-ring-ms", D.pace().ring + "ms");
             ring.classList.add("eg-ring--enter");
+            placeRing(t, st);
+            placeCoach(t, st);
         }
         placeRing(t, st);
         if (st.do === "type" && !t.__egSelectOnFocus) {
@@ -308,15 +421,7 @@
         enter(S.idx + 1);
     }
 
-    function appReady() {
-        var ov = document.getElementById("startupOverlay");
-        if (ov && ov.classList.contains("startup-overlay--visible")) return false;
-        var grid = document.getElementById("vesselGrid");
-        if (!grid || !grid.children.length) return false;
-        if (grid.querySelector(".vessel--initializing") && now() - bootAt < 20000) return false;
-        return true;
-    }
-    var bootAt = now();
+    function appReady() { return HOST.ready(); }
 
     /* ---- input guard: only the circled item, and only once it is ready ---- */
     function inGuide(e) { return !!(e.target && e.target.closest && e.target.closest(".eg-ui, .eg-success")); }
@@ -328,13 +433,13 @@
         if (S.finished || S.phase === "loading" || inGuide(e)) return;
         var block = true, msg = "";
         var st = steps[S.idx];
-        if (S.review >= 0) msg = "You are looking back at an earlier step. Press Back to current step to carry on.";
-        else if (S.phase === "entering") msg = "One moment. Wait for the red circle to settle, then " + st.title.toLowerCase() + ".";
-        else if (S.phase === "done") msg = "Got it. The next step is on its way.";
-        else if (st.do === "read") msg = "This step is just to read. Press Next when you are ready.";
-        else if (st.do === "wait") msg = "Just watch this one. It moves on by itself.";
+        if (S.review >= 0) msg = "Earlier step. Press Back to current step to continue.";
+        else if (S.phase === "entering") msg = "Wait for the red circle, then " + st.title.toLowerCase() + ".";
+        else if (S.phase === "done") msg = "Done.";
+        else if (st.do === "read") msg = "Read this step, then press Next.";
+        else if (st.do === "wait") msg = "Wait. This step continues on its own.";
         else if (inTarget(e)) block = false;
-        else msg = "Not that one. Use the item in the red circle.";
+        else msg = "Use the item in the red circle.";
         if (!block) { if (e.type === "click") S.clicked = true; return; }
         e.preventDefault(); e.stopPropagation(); if (e.stopImmediatePropagation) e.stopImmediatePropagation();
         if (e.type === "pointerdown" || (e.type === "click" && now() - S.lastHintAt > 400)) { S.lastHintAt = now(); hint(msg, true); }
@@ -355,7 +460,7 @@
             var tag = (e.target.tagName || "").toLowerCase();
             if (tag === "input" || tag === "select" || tag === "textarea" || tag === "button" || activate) {
                 e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
-                hint(S.phase === "ready" ? "Use the item in the red circle." : "One moment. Wait for the red circle to settle.", true);
+                hint(S.phase === "ready" ? "Use the item in the red circle." : "Wait for the red circle.", true);
             }
         }
     }, true);
@@ -367,7 +472,7 @@
         if (S.review >= 0) {
             S.review++;
             if (S.review >= S.idx) { S.review = -1; ring.classList.remove("eg-ring--review"); ring.classList.remove("on"); renderText(S.idx, false); setState(S.phase === "done" ? "done" : (S.phase === "ready" ? "go" : "wait"), S.phase === "ready" ? verb(steps[S.idx]) : "Please wait"); }
-            else { renderText(S.review, true); setState("review", "Looking back"); }
+            else { renderText(S.review, true); setState("review", "Earlier step"); }
             ring.classList.remove("on");
             updateButtons(); return;
         }
@@ -381,7 +486,7 @@
         S.review = from - 1;
         ring.classList.remove("on"); hand.classList.remove("on");
         renderText(S.review, true);
-        setState("review", "Looking back. Binventory keeps what you already did.");
+        setState("review", "Earlier step. Your changes are kept.");
         updateButtons();
     });
     bDo.addEventListener("click", function () {
@@ -433,6 +538,15 @@
 
     /* expose a small, read-only view for tests and support */
     window.EbobGuide = {
+        /* test hook: where the guide is and what it must not cover */
+        layout: function () {
+            function R(e) { if (!e) return null; var r = e.getBoundingClientRect(); return { l: r.left, t: r.top, r: r.right, b: r.bottom }; }
+            var i = S.review >= 0 ? S.review : S.idx, st = steps[i], t = target(st);
+            return { idx: i, phase: S.phase, coach: coach.hidden ? null : R(coach), compact: !!S.compact,
+                     target: vis(t) && st.ring !== false ? R(t) : null, ring: ring.classList.contains("on") ? R(ring) : null,
+                     hand: hand.classList.contains("on") ? R(hand) : null,
+                     reading: readingEls(st).map(R), vw: window.innerWidth, vh: window.innerHeight };
+        },
         state: function () { return { lesson: lesson.id, idx: S.idx, total: steps.length, phase: S.phase, review: S.review, finished: S.finished }; },
         /* test hook: tag the current target so automated checks can find it */
         markTarget: function () {
@@ -446,9 +560,9 @@
     };
 
     setInterval(tick, 60);
-    window.addEventListener("resize", tick);
+    window.addEventListener("resize", function () { lastSpot = null; tick(); });
     window.addEventListener("scroll", tick, true);
-    D.onChange(function () { if (!S.finished && S.phase !== "loading") { renderText(S.review >= 0 ? S.review : S.idx, S.review >= 0); updateButtons(); } });
+    D.onChange(function () { lastSpot = null; if (!S.finished && S.phase !== "loading") { renderText(S.review >= 0 ? S.review : S.idx, S.review >= 0); updateButtons(); } });
 
     /* =================================================================
      *  Built-in troubleshooting scenarios
@@ -480,6 +594,44 @@
         tip.insertBefore(bar, stateEl);
 
         var lastIdx = -1, enteredAt = 0, reviewAt = -1, markedDone = false, ht = 0;
+        /* keep the scenario card off the circled item and its pointer */
+        function nb(e) { if (!e || e.classList.contains("ebob-tutorial-hidden")) return null; var r = e.getBoundingClientRect(); if (!r.width) return null; return { l: r.left - 14, t: r.top - 14, r: r.right + 14, b: r.bottom + 14 }; }
+        function hitN(a, b) { return a.l < b.r && a.r > b.l && a.t < b.b && a.b > b.t; }
+        function placeNative() {
+            if (tip.classList.contains("ebob-tutorial-hidden")) return;
+            var av = [nb(document.getElementById("ebobTutorialCircle")), nb(document.getElementById("ebobTutorialPointer"))].filter(Boolean);
+            var vw = window.innerWidth, vh = window.innerHeight, m = 12, tb = document.querySelector(".eg-topbar");
+            var top = tb ? tb.getBoundingClientRect().bottom + 6 : 12;
+            clearTopbar(av);
+            tip.style.setProperty("transform", "none", "important"); tip.style.bottom = "auto";
+            /* full card, then a narrower card, then a compact card; each tries the usual spots and then a grid */
+            var modes = ["", "eg-native--narrow", "eg-native--narrow eg-native--min"];
+            for (var md = 0; md < modes.length; md++) {
+                tip.classList.remove("eg-native--narrow", "eg-native--min");
+                if (modes[md]) modes[md].split(" ").forEach(function (k) { tip.classList.add(k); });
+                var cw = tip.offsetWidth, ch = tip.offsetHeight;
+                var c = [[(vw - cw) / 2, vh - ch - 20], [(vw - cw) / 2, top]];
+                av.forEach(function (a) { c.push([(a.l + a.r - cw) / 2, a.b + 4], [(a.l + a.r - cw) / 2, a.t - ch - 4], [a.r + 4, a.t], [a.l - cw - 4, a.t], [a.r + 4, a.b - ch], [a.l - cw - 4, a.b - ch]); });
+                c.push([m, vh - ch - m], [vw - cw - m, vh - ch - m], [m, top], [vw - cw - m, top]);
+                for (var gy = 0; gy <= 8; gy++) for (var gx = 0; gx <= 8; gx++) c.push([m + (vw - cw - 2 * m) * gx / 8, top + (vh - ch - m - top) * gy / 8]);
+                for (var i = 0; i < c.length; i++) {
+                    var x = Math.max(m, Math.min(vw - cw - m, c[i][0])), y = Math.max(top, Math.min(vh - ch - m, c[i][1]));
+                    var me = { l: x, t: y, r: x + cw, b: y + ch }, ok = true;
+                    for (var k = 0; k < av.length; k++) if (hitN(me, av[k])) ok = false;
+                    if (ok) { tip.style.left = Math.round(x) + "px"; tip.style.top = Math.round(y) + "px"; return; }
+                }
+            }
+            /* nothing is clear: compact card on the side away from the circle */
+            var c0 = av[0], cw2 = tip.offsetWidth, ch2 = tip.offsetHeight;
+            tip.style.left = Math.round(c0 && (c0.l + c0.r) / 2 < vw / 2 ? vw - cw2 - m : m) + "px";
+            tip.style.top = Math.round(c0 && (c0.t + c0.b) / 2 > vh / 2 ? top : vh - ch2 - m) + "px";
+        }
+        window.EbobGuide = { layout: function () {
+            function R(e) { if (!e || e.classList.contains("ebob-tutorial-hidden")) return null; var r = e.getBoundingClientRect(); return r.width ? { l: r.left, t: r.top, r: r.right, b: r.bottom } : null; }
+            var s = st();
+            return { native: true, idx: s ? s.index : -1, coach: R(tip), ring: R(document.getElementById("ebobTutorialCircle")), target: null, reading: [], vw: innerWidth, vh: innerHeight };
+        }, state: function () { var s = st(); return s ? { idx: s.index, total: s.total, finished: s.completed, phase: s.pending ? "done" : "ready" } : null; } };
+        window.addEventListener("resize", placeNative);
         function st() { return window.__ebobNativeTutorial ? window.__ebobNativeTutorial.state() : null; }
         function setNative(kind, text) { stateEl.className = "eg-state eg-state--" + kind + " eg-native-state"; stateEl.lastChild.textContent = text; }
         function showReview() {
@@ -502,7 +654,7 @@
         });
         window.addEventListener("ebobguide:native-blocked", function (e) {
             var d = e.detail || {};
-            hintEl.textContent = d.done ? "Got it. The next step is on its way." : (d.busy ? "One moment. Wait for the red circle to settle." : "Not that one. Use the item in the red circle.");
+            hintEl.textContent = d.done ? "Done." : (d.busy ? "Wait for the red circle." : "Use the item in the red circle.");
             hintEl.classList.add("on");
             clearTimeout(ht); ht = setTimeout(function () { hintEl.classList.remove("on"); hintEl.textContent = ""; }, 3000);
             if (!D.reduceMotion()) { tip.classList.remove("eg-nudge"); void tip.offsetWidth; tip.classList.add("eg-nudge"); }
@@ -514,13 +666,14 @@
             backBtn.disabled = s.index === 0;
             bar.firstChild.style.width = (s.index / s.total * 100) + "%";
             bar.setAttribute("aria-valuenow", String(s.index)); bar.setAttribute("aria-valuemax", String(s.total));
+            placeNative();
             if (s.pending) setNative("done", "Done");
             else if (now() - enteredAt < D.pace().settle) setNative("wait", "Please wait");
-            else setNative("go", "Your turn");
+            else setNative("go", "Action");
         }, 80);
     }
 
     function lessonHref(l) {
-        return l.kind === "doc" ? "doc.html?lesson=" + l.id : l.scenario ? "emulator.html?tutorial=" + l.scenario + "&fresh=1" : "emulator.html?tutorial=free-mode&lesson=" + l.id;
+        return l.page === "installer" ? "installer.html?lesson=" + l.id : l.kind === "doc" ? "doc.html?lesson=" + l.id : l.scenario ? "emulator.html?tutorial=" + l.scenario + "&fresh=1" : "emulator.html?tutorial=free-mode&lesson=" + l.id;
     }
 })();

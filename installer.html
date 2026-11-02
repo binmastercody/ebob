@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en" class="eg-emulator eg-installer">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Binventory Installer practice</title>
+<link rel="icon" href="assets/eBob-V5-Application.ico">
+<script>
+(function () {
+    var sp = new URLSearchParams(location.search);
+    if (!sp.get("lesson") && !sp.get("mode")) { /* plain practice run of a fresh install */ }
+    try {
+        var d = JSON.parse(localStorage.getItem("ebob-guide-display") || "{}"), c = document.documentElement.classList;
+        c.add("eg-size-" + (d.size == null ? 1 : d.size));
+        if (d.contrast) c.add("eg-hc");
+        if (d.motion === "reduce" || (d.motion !== "full" && matchMedia("(prefers-reduced-motion: reduce)").matches)) c.add("eg-reduce-motion");
+    } catch (e) {}
+})();
+</script>
+<link rel="stylesheet" href="app/guide.css">
+<style>
+/* Replica of the Binventory Installer window. Colors and sizes from MainForm.Designer.cs. */
+html.eg-installer, html.eg-installer body { margin: 0; min-height: 100%; background: #dfe6ee; }
+html.eg-installer .eg-top-title { color: #1E3A8A; text-shadow: none; }
+html.eg-installer body { padding-top: 3.4em; box-sizing: border-box; font-family: "Segoe UI", "Selawik", "Noto Sans", Arial, sans-serif; }
+#instDesk { position: relative; min-height: calc(100vh - 3.4em); display: flex; align-items: center; justify-content: flex-end; padding: 16px 4vw 16px 16px; box-sizing: border-box; }
+.inst-note { position: absolute; left: 16px; bottom: 6px; margin: 0; font: 13px/1.4 "Segoe UI", Arial, sans-serif; color: #334155; }
+.iw { width: 560px; background: #fff; border: 1px solid #94a3b8; border-radius: 8px; box-shadow: 0 18px 50px rgba(15, 23, 42, .28); overflow: hidden; color: #334155; }
+.iw[hidden] { display: none; }
+.iw-titlebar { height: 32px; display: flex; align-items: center; gap: 8px; padding: 0 12px; font-size: 12px; color: #111827; background: #fff; border-bottom: 1px solid #e2e8f0; user-select: none; }
+.iw-titlebar img { width: 16px; height: 16px; }
+.iw-x, .mb-title .iw-x { margin-left: auto; color: #475569; font-size: 12px; }
+.iw-client { position: relative; width: 560px; height: 450px; background: #F5F7FA; overflow: hidden; }
+.iw-client > *, .iw-pnl > *, .iw-grp > *, .iw-opts > * { position: absolute; }
+.iw-lbl { font-size: 12px; color: #475569; line-height: 1.35; }
+#lblTitle { font-size: 24px; font-weight: 700; color: #1E3A8A; white-space: nowrap; line-height: 32px; }
+#lblDescription { color: #475569; }
+#picLogo { object-fit: contain; }
+.iw-b10 { font-size: 13.33px; font-weight: 700; color: #1E3A8A; }
+.iw-r10 { font-size: 13.33px; color: #334155; }
+.iw-dim { opacity: .55; }
+.iw-ok { color: #15803d; font-weight: 600; }
+.iw-grp { margin: 0; padding: 0; box-sizing: border-box; border: 1px solid #cbd5e1; border-radius: 4px; background: #fff; font-size: 13.33px; font-weight: 700; color: #1E3A8A; }
+.iw-grp legend { position: absolute; top: -10px; left: 8px; padding: 0 4px; background: #fff; font-weight: 700; }
+.iw-rad, .iw-chk { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; font-size: 12.67px; font-weight: 400; color: #334155; cursor: pointer; min-height: 23px; }
+.iw-rad input, .iw-chk input { margin: 0; width: 14px; height: 14px; accent-color: #3B82F6; cursor: pointer; }
+.iw-chk input:disabled, .iw-rad input:disabled { cursor: default; }
+.iw-off { color: #94a3b8; cursor: default; }
+.iw-c10 { font-size: 13.33px; }
+#lblRepairError { font: italic 11px "Microsoft Sans Serif", Arial, sans-serif; color: red; white-space: nowrap; }
+.iw-opts { background: #F1F5F9; border-radius: 4px; }
+.iw-opts .iw-chk { color: #475569; }
+.iw-txt { box-sizing: border-box; border: 1px solid #94a3b8; border-radius: 3px; background: #fff; color: #0f172a; font: 13.33px "Segoe UI", Arial, sans-serif; padding: 2px 6px; }
+.iw-txt:disabled, .iw-txt.iw-locked { background: #d3d3d3; color: #0f172a; }
+textarea.iw-txt { font-size: 12px; resize: none; white-space: pre-wrap; padding: 6px 8px; }
+select.iw-txt { font-size: 12px; }
+#lblEngineSiteDescription { font-size: 11.33px; font-weight: 400; color: #475569; }
+#lblEngineSite { font-size: 12.67px; font-weight: 400; color: #334155; }
+#lblConnectionProgress { color: blue; font-style: italic; }
+.iw-btn { box-sizing: border-box; border-radius: 4px; font: 700 12.67px "Segoe UI", Arial, sans-serif; cursor: pointer; }
+.iw-blue { background: #3B82F6; color: #fff; border: 0; }
+.iw-blue:hover:not(:disabled) { background: #2563EB; }
+.iw-white { background: #fff; color: #334155; border: 1px solid #cbd5e1; }
+.iw-white:hover:not(:disabled) { background: #F1F5F9; }
+.iw-sys { background: #e5e7eb; border: 1px solid #9ca3af; font-weight: 400; font-size: 12px; color: #111; }
+.iw-b9 { font-size: 12px; }
+#btnTestConnection { font-size: 13.33px; }
+.iw-btn:disabled { opacity: .5; cursor: default; }
+.iw-bar { box-sizing: border-box; border: 1px solid #cbd5e1; background: #e6e6e6; border-radius: 2px; overflow: hidden; }
+.iw-bar i { display: block; height: 100%; width: 0; background: #06b025; transition: width .3s linear; }
+html.eg-reduce-motion .iw-bar i { transition: none; }
+.iw-client :focus-visible, #mbLayer :focus-visible, .inst-closed :focus-visible { outline: 3px solid #1d4ed8; outline-offset: 2px; }
+/* message boxes and dialogs */
+#mbLayer { position: absolute; left: 0; top: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; pointer-events: none; }
+#mbLayer:empty { display: none; }
+#mbLayer > * { pointer-events: auto; }
+.mb-shade { position: fixed; inset: 0; background: rgba(15, 23, 42, .12); }
+.mb, .cf, .dp { position: relative; background: #fff; border: 1px solid #94a3b8; border-radius: 8px; box-shadow: 0 16px 40px rgba(15, 23, 42, .35); overflow: hidden; color: #111827; }
+.mb { min-width: 300px; max-width: 420px; }
+.mb-title { height: 30px; display: flex; align-items: center; padding: 0 12px; font-size: 12px; border-bottom: 1px solid #e2e8f0; }
+.mb-body { display: flex; gap: 12px; padding: 18px 20px 20px; font-size: 12px; line-height: 1.45; }
+.mb-ico { flex: 0 0 auto; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; color: #fff; font: 700 16px Arial, sans-serif; }
+.mb-ico--info { background: #1d6fd8; } .mb-ico--question { background: #1d6fd8; } .mb-ico--error { background: #d92d20; }
+.mb-ico--warn { background: #f5b301; color: #111; border-radius: 4px; }
+.mb-foot { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 14px; background: #f0f0f0; border-top: 1px solid #e2e8f0; }
+.mb-btn { min-width: 76px; height: 26px; border: 1px solid #9ca3af; border-radius: 4px; background: #fdfdfd; font: 12px "Segoe UI", Arial, sans-serif; cursor: pointer; }
+.mb-btn:hover { background: #e5f1fb; border-color: #0078d4; }
+.cf { width: 600px; }
+.cf-client { position: relative; height: 510px; background: #F5F7FA; }
+.cf-client > * { position: absolute; }
+.cf-ico { left: 30px; top: 30px; width: 40px; height: 40px; font-size: 32px; color: #dc2626; line-height: 40px; }
+.cf-h { left: 80px; top: 35px; width: 450px; font: 700 18px "Segoe UI", Arial, sans-serif; color: #1E3A8A; }
+.cf-q { left: 30px; top: 85px; font-size: 14px; color: #475569; }
+.cf-yes { left: 30px; top: 125px; width: 530px; height: 200px; box-sizing: border-box; padding: 10px 15px; background: #dcfce7; color: #15803d; font-size: 12px; border-radius: 4px; }
+.cf-no { left: 30px; top: 335px; width: 530px; height: 105px; box-sizing: border-box; padding: 10px 15px; background: #fee2e2; color: #b91c1c; font-size: 12px; border-radius: 4px; }
+#cfRetry { left: 450px; top: 455px; width: 110px; height: 38px; }
+.dp { width: 660px; }
+.dp-client { padding: 16px 22px 18px; background: #F5F7FA; }
+.dp-h { font: 700 18px "Segoe UI", Arial, sans-serif; color: #1E3A8A; margin-bottom: 4px; }
+.dp-info { font-size: 12px; color: #475569; margin: 6px 0; }
+.dp-list { width: 100%; border-collapse: collapse; background: #fff; font-size: 12px; border: 1px solid #cbd5e1; }
+.dp-list th { text-align: left; font-weight: 600; padding: 4px 6px; background: #f8fafc; border-bottom: 1px solid #cbd5e1; }
+.dp-list td { padding: 5px 6px; cursor: pointer; }
+.dp-list tr.on td { background: #cce4f7; }
+.dp-foot { display: flex; justify-content: flex-end; gap: 10px; margin-top: 14px; }
+.dp-foot .iw-btn { height: 40px; padding: 0 18px; }
+#dpUse { width: 160px; } #dpCancel { width: 110px; }
+.inst-closed { margin: 0 auto 0 0; max-width: 32em; padding: 18px 20px; background: #fff; border: 1px solid #cbd5e1; border-radius: 10px; font: 15px/1.5 "Segoe UI", Arial, sans-serif; color: #0f172a; }
+.inst-closed[hidden], .inst-reboot[hidden] { display: none; }
+.inst-closed .iw-btn { height: 38px; padding: 0 16px; }
+.inst-reboot { position: fixed; inset: 3.4em 0 0 0; background: #0b3a78; color: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; font: 22px "Segoe UI", Arial, sans-serif; z-index: 50; }
+.inst-spin { width: 34px; height: 34px; border: 4px solid rgba(255,255,255,.35); border-top-color: #fff; border-radius: 50%; animation: instspin 1s linear infinite; }
+html.eg-reduce-motion .inst-spin { animation: none; }
+@keyframes instspin { to { transform: rotate(360deg); } }
+@media (max-width: 900px) { #instDesk { justify-content: center; padding-right: 16px; } }
+</style>
+</head>
+<body>
+<script src="app/display.js"></script>
+<script src="app/lessons.js"></script>
+<script src="app/installer-text.js"></script>
+<script src="app/installer-sim.js"></script>
+<script src="app/guide.js"></script>
+</body>
+</html>

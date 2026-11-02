@@ -56,12 +56,12 @@
   var sec = LS.sections.filter(function (s) { return s.id === lesson.section; })[0];
   function $(i) { return document.getElementById(i); }
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
-  function href(l) { return l.kind === "doc" ? "doc.html?lesson=" + l.id : l.scenario ? "emulator.html?tutorial=" + l.scenario + "&fresh=1" : "emulator.html?tutorial=free-mode&lesson=" + l.id; }
+  function href(l) { return l.page === "installer" ? "installer.html?lesson=" + l.id : l.kind === "doc" ? "doc.html?lesson=" + l.id : l.scenario ? "emulator.html?tutorial=" + l.scenario + "&fresh=1" : "emulator.html?tutorial=free-mode&lesson=" + l.id; }
   document.title = lesson.title + " | Binventory eBob Guide";
   $("docKicker").textContent = sec ? sec.title : "";
   $("docTopName").textContent = lesson.title;
   $("docTitle").textContent = lesson.title;
-  $("docSrc").textContent = "From the Binventory V5 Operator's Manual, section " + lesson.manual + ".";
+  $("docSrc").textContent = lesson.source ? "Source: " + lesson.source + "." : "From the Binventory V5 Operator's Manual, section " + lesson.manual + ".";
   var steps = lesson.doc, n = steps.length, i = 0, dots = $("docDots");
   steps.forEach(function (s, k) {
     var li = document.createElement("li");

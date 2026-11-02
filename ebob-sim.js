@@ -3752,10 +3752,41 @@
         document.__ebobVesselAlarmStrobeTimerId = setInterval(tickVesselAlarmStrobe, 600);
     }
 
+    /** Bulk density in lbs per cubic foot from the vessel's Contents settings, or null if not set. */
+    var EG_DENSITY_TO_LB_FT3 = {
+        "lbs / cubic ft": 1,
+        "lbs / gallon": 7.48052,          /* 7.48052 US gallons per cubic foot */
+        "kg / cubic meter": 0.0624280,
+        "grams / cc": 62.4280,
+        "kg / liter": 62.4280,
+        "tons / cubic yard": 2000 / 27    /* US tons, 27 cubic feet per cubic yard */
+    };
+    var EG_WATER_LB_FT3 = 62.4280;
+    function egDensityLbPerCuFt(v) {
+        if (!v) return null;
+        if (v.densityMode === "sg") {
+            var sg = parseFloat(v.specificGravity);
+            return isFinite(sg) && sg > 0 ? sg * EG_WATER_LB_FT3 : null;
+        }
+        var d = parseFloat(String(v.productDensity == null ? "" : v.productDensity).replace(/,/g, ""));
+        if (!isFinite(d) || d <= 0) return null;
+        var key = String(v.densityUnits || "lbs / cubic ft").replace(/\s*\/\s*/g, " / ").toLowerCase();
+        var f = EG_DENSITY_TO_LB_FT3[key];
+        return f ? d * f : null;
+    }
+    /** Weight (lbs) = volume (cubic ft) x density (lbs per cubic ft). Keeps the old weight if no density is set. */
+    function egSyncWeightFromDensity(v) {
+        var den = egDensityLbPerCuFt(v), vol = Number(v && v.volumeCuFt);
+        if (den == null || !isFinite(vol)) return;
+        v.weightLb = Math.round(vol * den);
+    }
+    window.__ebobDensity = { lbPerCuFt: egDensityLbPerCuFt };
+
     function applySimulatedMeasurementValues(v) {
         v.pctFull = Math.min(100, Math.max(5, v.pctFull + (Math.random() - 0.45) * 12));
         v.volumeCuFt = Math.round(800 + v.pctFull * 45);
         v.weightLb = Math.round(v.volumeCuFt * 42);
+        egSyncWeightFromDensity(v);
         v.heightFt = Math.round((4 + (v.pctFull / 100) * 10) * 100) / 100;
     }
 
@@ -6791,6 +6822,7 @@
             vv.heightFt = parseFloat(vesselSetupField("vs_h").value) || vv.heightFt;
             vv.volumeCuFt = parseInt(vesselSetupField("vs_vol").value, 10) || vv.volumeCuFt;
             vv.weightLb = parseInt(vesselSetupField("vs_w").value, 10) || vv.weightLb;
+            egSyncWeightFromDensity(vv);
             vv.pctFull = Math.min(
                 100,
                 Math.max(0, parseInt(vesselSetupField("vs_pct").value, 10) || vv.pctFull)
@@ -13453,7 +13485,7 @@
             if (!t) return null;
             return { index: t.stepIndex, total: t.steps.length, completed: !!t.completed, active: !!t.active,
                 pending: t.pendingAdvanceStepIndex === t.stepIndex,
-                steps: t.steps.map(function (s) { return { title: s.title, message: s.message }; }) };
+                steps: t.steps.map(function (s) { return { title: s.title, message: s.message, selector: typeof s.selector === "string" ? s.selector : null, input: s.inputSelector || null, next: !!s.requiresNext }; }) };
         }
     };
     /* —— init —— */

@@ -57,6 +57,12 @@
         return best && best.querySelector(".modal-cap");
     }
     function vesselTile(id) { return '#vesselGrid .vessel[data-vessel-id="' + id + '"]'; }
+    function tileValue(vid, label) {
+        var t = document.querySelector(vesselTile(vid)); if (!t) return "";
+        var m = new RegExp(label + ":\\s*([0-9][0-9,.]*\\s*[A-Za-z. ]*?)(?:\\n|$)").exec(t.innerText || "");
+        return m ? m[1].trim() : "";
+    }
+    var tileMemo = {};
     function pageTab(n) { return '#tabStrip [data-tab="' + (n - 1) + '"]'; }
     function tabActive(n) { var t = document.querySelector(pageTab(n)); return !!(t && t.classList.contains("active")); }
     function vsTab(name) { return '#backdropAppStack [data-vs-tab="' + name + '"]'; }
@@ -83,17 +89,17 @@
 
     var SECTIONS = [
         { id: "setup", title: "Setup", kind: "path", icon: "rocket", acc: "#5b3fa6", tint: "#f0ecfa",
-          blurb: "Plan, install and set up a new system, from checking the PC to the first reading, in the order the manual uses." },
+          blurb: "Plan, install and set up a new system." },
         { id: "alerts", title: "Alerts and email", icon: "bell", acc: "#c2410c", tint: "#fff1e8",
-          blurb: "Level alarms, email server, contacts and who gets which email." },
+          blurb: "Level alarms, email server and contacts." },
         { id: "readings", title: "Readings and schedules", icon: "gauge", acc: "#0f766e", tint: "#e6f6f4",
-          blurb: "Take measurements, read vessel details, group vessels and schedule readings." },
+          blurb: "Measurements, vessel details, groups and schedules." },
         { id: "reports", title: "Reports", icon: "chart", acc: "#1d4ed8", tint: "#e9effd",
-          blurb: "Inventory reports, history charts and the emailed Site Status Report." },
+          blurb: "Inventory reports, history and the Site Status Report." },
         { id: "admin", title: "Users, backup and upgrades", icon: "users", acc: "#4b5563", tint: "#f1f2f4",
-          blurb: "Add users with the right access, back up your system and upgrade safely." },
+          blurb: "Users, backups and upgrades." },
         { id: "trouble", title: "Troubleshooting", icon: "wrench", acc: "#b91c1c", tint: "#fdecec",
-          blurb: "Find the cause of common problems by checking the right screens, step by step." }
+          blurb: "Common problems and how to fix them." }
     ];
 
     var L = [];
@@ -103,7 +109,7 @@
         desc: "The menu bar, vessel panels, status and pages.",
         outro: "You know where the menus are, what a vessel panel shows and how to switch pages.",
         steps: [
-            { title: "This is Binventory Workstation", msg: "Every vessel and setting is reached from this window. This practice copy starts with a sample site of 32 vessels. Nothing you do here touches a real system.",
+            { title: "This is Binventory Workstation", msg: "Every vessel and setting is reached from this window. This practice copy has a sample site with 32 vessels and is not connected to a real system.",
               target: "#appShell", do: "read", ring: false },
             { title: "The menu bar", msg: "Binventory is run from six menus: <b>File</b>, <b>Vessel</b>, <b>Reports</b>, <b>Specifications</b>, <b>Site Assignment</b> and <b>Help</b>. Most setup is under Specifications and Vessel.",
               target: "#menuStrip", do: "read" },
@@ -478,50 +484,185 @@
 
 
     /* ======================= SETUP: before and during installation (reading lessons, doc.html) ======================= */
-    L.push({ id: "plan", section: "setup", kind: "doc", title: "Before you install", manual: "2, 3, 4.1, 4.2, 4.4.1",
-        desc: "What Binventory is made of, what the PC needs and which setup to choose.",
-        outro: "You know the parts of Binventory, what the PC needs and whether to use Easy or Advanced setup.",
+    /* SQL Server 2022 minimums, from Microsoft's official requirements page */
+    var SQL2022_URL = "https://learn.microsoft.com/en-us/sql/sql-server/install/hardware-and-software-requirements-for-installing-sql-server-2022";
+    var SQL2022_PANEL =
+        '<section class="eg-req" aria-labelledby="egReqTitle">' +
+        '<h2 class="eg-req-title" id="egReqTitle">PC requirements for the SQL Server 2022 database PC</h2>' +
+        '<dl class="eg-req-list">' +
+        "<dt>Processor</dt><dd>x64 only. 1.4 GHz minimum, 2.0 GHz or faster recommended.</dd>" +
+        "<dt>Memory</dt><dd>Express edition: 512 MB minimum, 1 GB recommended. Other editions: 1 GB minimum, at least 4 GB recommended, and more as the database grows.</dd>" +
+        "<dt>Storage</dt><dd>At least 6 GB free on the system drive for setup. The Database Engine itself needs about 1.5 GB.</dd>" +
+        "<dt>Display</dt><dd>800 by 600 or higher.</dd>" +
+        "<dt>Operating system</dt><dd>Workstation or stand-alone PC: Windows 11 Pro, Enterprise or Home, with SQL Server 2022 Express or Standard. Server installs: Windows Server 2016, 2019, 2022 or 2025. Windows 10 is not supported. It reached end of support in October 2025.</dd>" +
+        "<dt>.NET Framework</dt><dd>4.7.2</dd>" +
+        "<dt>Network</dt><dd>TCP/IP. Named Pipes and Shared Memory are also supported.</dd>" +
+        "<dt>Do not use</dt><dd>A domain controller. Do not install SQL Server on one.</dd>" +
+        "</dl>" +
+        '<p class="eg-req-src">Source: <a href="' + SQL2022_URL + '" target="_blank" rel="noopener">Microsoft Learn, SQL Server 2022 hardware and software requirements</a></p>' +
+        "</section>";
+
+    /* ---------- installer lessons: the .NET 8 Binventory Installer (installer.html replica) ---------- */
+    function inst() { return window.EbobInstaller || null; }
+    function onPage(n) { return function () { var i = inst(); return !!i && i.open() && i.page() === n && !i.dialog(); }; }
+    function noDialog() { var i = inst(); return !!i && !i.dialog(); }
+    function hasDialog() { var i = inst(); return !!i && i.dialog(); }
+    function closed() { var i = inst(); return !!i && !i.open() && !i.state.rebooting; }
+    function boxChecked(id) { return function () { var e = document.querySelector("#" + id + " input"); return !!e && e.checked; }; }
+    var HOST_IP = "192.168.1.20";
+    function next(page, msg) { return { title: "Next", msg: msg || "Click <b>Next &gt;</b>.", target: "#btnNext", do: "click", until: onPage(page) }; }
+    var I_LICENSE = [
+        { title: "License agreement", msg: "Read the license agreement. <b>Next &gt;</b> stays off until you accept it.", target: "#txtLicense", do: "read" },
+        { title: "Accept the license", msg: "Check <b>I accept the terms of the license</b>.", target: "#chkAcceptLicense", do: "click", until: boxChecked("chkAcceptLicense") }
+    ];
+    function I_RUN(doneMsg) {
+        return [
+            { title: "Installing", msg: "The installer runs each step and shows it under the progress bar. Installing SQL Server Express takes the longest.", target: "#pnlProgress", do: "wait", until: onPage(5) },
+            { title: "Finished", msg: doneMsg || "<b>Install Finished Successfully.</b> Binventory Workstation starts on its own.", target: "#lblDescription", do: "read" },
+            { title: "Close the installer", msg: "Click <b>Finish</b>.", target: "#btnNext", do: "click", until: closed }
+        ];
+    }
+    function I_CONNECT(intro) {
+        return [
+            { title: "Host PC address", msg: intro || "Type the IPv4 address of the Host PC. To find it, open Command Prompt on the Host PC and type <b>IPCONFIG</b>.", target: "#pnlServerIP", do: "read" },
+            { title: "Type the address", msg: "For practice, type <b>" + HOST_IP + "</b>.", target: "#txtServerIP", do: "type", value: HOST_IP },
+            { title: "Connect", msg: "Click <b>Connect</b>. On a real network this can take 30 to 60 seconds.", target: "#btnTestConnection", do: "click", until: hasDialog },
+            { title: "IP Verified", msg: "The installer found the database on the Host PC. Click <b>OK</b>.", target: "#mbOK", do: "click", until: noDialog },
+            { title: "Connected", msg: "The box now shows the database the PC will use: <b>" + HOST_IP + "\\BINVENTORY</b>. To pick a different Host PC, click <b>Change IP?</b>.", target: "#txtServerIP", do: "read" }
+        ];
+    }
+
+    L.push({ id: "plan", source: "Operator's Manual sections 2 to 4 and the Binventory Installer v5.5", section: "setup", kind: "doc", title: "Before you install", manual: "2, 3, 4",
+        desc: "The parts of Binventory, what each PC needs and which install type to pick.",
+        outro: "Install the Host PC first, then each Client PC.",
         doc: [
-            { title: "Binventory has three parts", html: "<p>A full installation has three parts. They can all be on one PC or spread across a local network.</p><ol><li><b>Workstation.</b> The window you use to see vessels, set things up and run reports. There can be more than one.</li><li><b>Engine and Scheduler services.</b> Background programs that start with the PC. They talk to the sensors, run measurement schedules and send email alerts. Each site of vessels needs its own running set.</li><li><b>SQL Server database.</b> Stores all settings and readings, using Microsoft SQL Server 2014 Express. One system has one database.</li></ol>" },
-            { title: "Stand-alone or networked", html: "<p><b>Single stand-alone.</b> Everything on one PC. The easiest to install, but only usable on that PC.</p><p><b>Networked.</b> Parts on several PCs on a private network. More work to set up, but it supports any number of sites and remote Workstations, for example a database at the office and a site at each plant.</p>" },
-            { title: "Check the PC", html: "<ul><li>Windows 11, 10, 8.1, 8 or 7 SP1, or Windows Server 2008 R2 through 2022</li><li>Microsoft .NET Framework 3.5 SP1 and 4.0. The installer finds any that are missing.</li><li>A 1.4 GHz 64-bit or 1.0 GHz 32-bit processor. 2.0 GHz or faster is recommended.</li><li>4 GB of RAM and 7 GB of free disk space</li><li>An 800 by 600 screen. 1024 by 768 or better is recommended.</li><li>A free USB port for the installation flash drive</li></ul><p>Binventory cannot be guaranteed to work on a PC that does not meet these.</p>" },
-            { title: "A way to reach the sensors", html: "<p>The PC that hosts a site needs at least one connection to the sensor network:</p><ul><li>an RS-232 serial port plus an RS-232 to RS-485 interface,</li><li>a USB port plus a USB to serial adaptor, or</li><li>a network connection plus a serial device server.</li></ul><p>Email alerts also need network or internet access to an SMTP email server. Networked systems need every PC on the same IP network.</p>" },
-            { title: "Easy or Advanced setup", html: "<p>The installer asks for a setup type. <b>Easy</b> installs every part. <b>Advanced</b> lets you pick parts.</p><p>Use <b>Easy</b> when:</p><ul><li>you are installing a single stand-alone system, or</li><li>this PC in a networked system will host both the database and a set of services.</li></ul><p>Every other install in a networked system uses <b>Advanced</b>.</p>" },
-            { title: "Networked systems: make a list first", html: "<p>Before a network install, list every PC you will use. For each one write down:</p><ul><li>its computer name or static IP address</li><li>its installation type: Database, Database with Site, Site, or Remote Workstation</li><li>the COM port, if it hosts a site of vessels</li><li>the Windows administrator user name and password</li></ul><p>A PC that hosts a site needs a free serial port and should be fairly close to the vessels.</p>" }
+            { title: "Binventory has three parts", html: "<ol><li><b>Workstation Client.</b> The program you use to see vessels, set things up and run reports.</li><li><b>eBob Services.</b> The Engine and Scheduler services. They talk to the sensors, run schedules and send email alerts. Each site needs one PC running them.</li><li><b>SQL Server.</b> The database, SQL Server 2022 Express, instance name BINVENTORY. One system has one database.</li></ol>" },
+            { title: "Pick an install type", html: "<p>The installer's first page has three choices under <b>Installation Type</b>:</p><ul><li><b>Server/Host Install.</b> All three parts. Use it on a stand-alone PC, or on the Host PC of a networked system.</li><li><b>Client Install.</b> Workstation Client only. It connects to the Host PC's database.</li><li><b>Advanced.</b> Pick the parts: <b>Workstation Client</b> (always on), <b>eBob Services</b> and <b>SQL Server</b>. Use it for a PC that runs a site's services but not the database.</li></ul>" },
+            { title: "Check every PC", html: "<ul><li>Windows 11 Pro, Enterprise or Home on a workstation or stand-alone PC, or Windows Server 2016, 2019, 2022 or 2025 on a server. Windows 10 is not supported (end of support October 2025).</li><li>A 64-bit (x64) processor.</li><li>Free disk space: about 4 GB for a Server/Host Install and about 1 GB for a Client Install. The installer shows the exact amount.</li><li>A Windows administrator account. The installer will not run without one.</li></ul><p>The Host PC must also meet the SQL Server 2022 requirements on the next page.</p>" },
+            { title: "The Host PC", html: SQL2022_PANEL },
+            { title: "A way to reach the sensors", html: "<p>The PC that runs a site's eBob Services needs one of these:</p><ul><li>an RS-232 serial port and an RS-232 to RS-485 interface</li><li>a USB port and a USB to RS-485 adaptor. Leave <b>Install USB Drivers?</b> checked.</li><li>a network connection and a serial device server</li></ul><p>Email alerts need access to an SMTP email server.</p>" },
+            { title: "Networked systems", html: "<p>Install the Host PC first and leave it on. Write down its IPv4 address. Every other PC needs it when you click <b>Connect</b>.</p><p>The installer adds these Windows Firewall rules on the Host PC:</p><ul><li><b>eBob Engine (TCP-8093)</b>: TCP port 8093</li><li><b>SQL Server (BINVENTORY)</b>: the SQL Server program, sqlservr.exe</li><li><b>SQL Server Browser (UDP-1434)</b>: UDP port 1434</li></ul><p>If a firewall other than Windows Firewall is in use, open the same ports in it.</p>" }
         ] });
 
-    L.push({ id: "install", section: "setup", kind: "doc", title: "Installing on one PC", manual: "4.3",
-        desc: "The Easy setup for a single stand-alone system, up to first launch.",
-        outro: "Binventory is installed. The next lessons set up the Workstation in the order the manual uses.",
-        doc: [
-            { title: "Log in as an administrator", html: "<p>Log in to Windows with an <b>administrator</b> account. Installation fails without administrator rights.</p><p>Make sure the PC meets the requirements from the previous lesson.</p>" },
-            { title: "Run Binventory Setup", html: "<p>Insert the USB flash drive with the Binventory software. Find the <b>Binventory Setup</b> file on it and run it.</p>" },
-            { title: "Choose Easy", html: "<p>Follow the on-screen instructions. When asked for the setup type, choose <b>Easy</b>. This installs the Workstation, the Engine and Scheduler services and the SQL database.</p><p>If the PC is missing a needed .NET Framework, the installer tells you.</p>" },
-            { title: "Open the Workstation", html: "<p>When the installation finishes, double-click the <b>Binventory Workstation</b> icon on the desktop. It is also under <b>eBob</b> in the Windows start menu.</p><p>The first time, the main screen is mostly blank because no vessels are set up yet. A stand-alone system does not need Binventory Administrator because its defaults are already set.</p>" },
-            { title: "What comes next", html: "<p>The manual sets up a new system in this order, and so do the next lessons:</p><ol><li>Tour the Workstation</li><li>System Setup and Site Setup</li><li>Add a sensor network for your sensor type</li><li>Add each vessel, then copy it for similar vessels</li><li>Take a test measurement</li></ol>" }
+    L.push({ id: "install", source: "Binventory Installer v5.5", section: "setup", page: "installer", installer: { mode: "fresh" }, title: "Installing on one PC", manual: "4.3",
+        desc: "Server/Host Install: Workstation, eBob Services and SQL Server on one PC.",
+        outro: "Binventory is installed. Next, tour the Workstation and set up the system.",
+        steps: [
+            { title: "Binventory Installer", msg: "Run the installer as an administrator. The first page asks for the installation type.", target: "#grpInstallType", do: "read" },
+            { title: "Server/Host Install", msg: "Click <b>Server/Host Install</b>. It installs the Workstation Client, eBob Services and SQL Server on this PC.", target: "#radServer", do: "click" },
+            next(1)
+        ].concat(I_LICENSE, [
+            next(2),
+            { title: "Project data", msg: "<b>Import Later or New Setup</b> starts with an empty database. <b>Import Now</b> loads a project DAT file from another system.", target: "#grpImportProject", do: "read" },
+            { title: "New setup", msg: "Click <b>Import Later or New Setup</b>.", target: "#radImportLater", do: "click" },
+            next(3),
+            { title: "Installation Directory", msg: "Binventory always installs to <b>C:\\Program Files (x86)\\eBob</b>.", target: "#txtInstallPath", do: "read" },
+            { title: "Required Space", msg: "The installer shows the space it needs and the space free on the drive.", target: "#lblDiskSpace", do: "read" },
+            { title: "USB drivers", msg: "Leave <b>Install USB Drivers?</b> checked if the sensors connect through a USB adaptor.", target: "#chkInstallUsbDrivers", do: "read" },
+            { title: "Install", msg: "Click <b>Install</b>.", target: "#btnNext", do: "click", until: onPage(4) }
+        ], I_RUN()) });
+
+    L.push({ id: "install-import", source: "Binventory Installer v5.5", section: "setup", page: "installer", installer: { mode: "fresh" }, title: "Importing a project during install", manual: "4.3, 7",
+        desc: "Load a project DAT file from another system while installing.",
+        outro: "The project is imported into the new database during the install.",
+        steps: [
+            { title: "Server/Host Install", msg: "Importing needs SQL Server on this PC. Click <b>Server/Host Install</b>.", target: "#radServer", do: "click" },
+            next(1)
+        ].concat(I_LICENSE, [
+            next(2),
+            { title: "Import Now", msg: "Click <b>Import Now</b>.", target: "#radImportNow", do: "click" },
+            { title: "Pick the file", msg: "Use <b>Browse</b> to pick a DAT file, drag a .dat file onto this page, or click <b>Search</b> to look for one.", target: "#lblDatStatus", do: "read" },
+            { title: "Search", msg: "Click <b>Search</b>.", target: "#btnSearchDat", do: "click", until: hasDialog },
+            { title: "Select Your Project File", msg: "The installer found more than one file. The newest is selected. Click <b>Use This File</b>.", target: "#dpUse", do: "click", until: noDialog },
+            { title: "Project Validated", msg: "The status shows <b>Project Validated</b> and the Binventory version the file came from.", target: "#lblDatStatus", do: "read" },
+            next(3),
+            { title: "Install", msg: "Click <b>Install</b>.", target: "#btnNext", do: "click", until: onPage(4) }
+        ], I_RUN()) });
+
+    L.push({ id: "network-install", source: "Binventory Installer v5.5", section: "setup", page: "installer", installer: { mode: "fresh" }, title: "Installing a networked system", manual: "4.4",
+        desc: "Client Install on each Workstation PC, connected to the Host PC.",
+        outro: "This PC uses the Host PC's database. For a PC that runs a site's services, see Installing a site PC.",
+        steps: [
+            { title: "Install the Host PC first", msg: "Do a <b>Server/Host Install</b> on the Host PC first and leave it on. Then run the installer on each other PC.", target: "#grpInstallType", do: "read" },
+            { title: "Client Install", msg: "Click <b>Client Install</b>. It installs only the Workstation Client.", target: "#radClient", do: "click", until: function () { return visible("#txtServerIP"); } }
+        ].concat(I_CONNECT(), [
+            next(1)
+        ], I_LICENSE, [
+            next(3),
+            { title: "No USB drivers", msg: "A Client Install does not talk to sensors, so there is no USB driver option.", target: "#pnlInstallPath", do: "read" },
+            { title: "Install", msg: "Click <b>Install</b>.", target: "#btnNext", do: "click", until: onPage(4) }
+        ], I_RUN()) });
+
+    L.push({ id: "install-site", source: "Binventory Installer v5.5", section: "setup", page: "installer", installer: { mode: "fresh" }, title: "Installing a site PC", manual: "4.4",
+        desc: "Advanced install with eBob Services, assigned to one site.",
+        outro: "Each site needs one PC with eBob Services assigned to it.",
+        steps: [
+            { title: "Advanced", msg: "Click <b>Advanced</b>.", target: "#radCustom", do: "click", until: function () { return visible("#chkEngineScheduler"); } },
+            { title: "Pick the parts", msg: "<b>Workstation Client</b> is always installed. <b>eBob Services</b> runs the Engine and Scheduler. <b>SQL Server</b> installs a database.", target: "#pnlCustomOptions", do: "read" },
+            { title: "eBob Services", msg: "Check <b>eBob Services</b>. Leave SQL Server unchecked. This PC uses the Host PC's database.", target: "#chkEngineScheduler", do: "click", until: boxChecked("chkEngineScheduler") }
+        ].concat(I_CONNECT("Without SQL Server, this PC needs the Host PC's address. Type its IPv4 address."), [
+            next(1)
+        ], I_LICENSE, [
+            next(15),
+            { title: "Site Setup", msg: "Each site needs one PC running its Engine Service.", target: "#lblEngineSiteDescription", do: "read" },
+            { title: "Pick the site", msg: "Choose <b>North Plant</b>.", target: "#cmbEngineSite", do: "select", value: "North Plant" },
+            next(3),
+            { title: "USB drivers", msg: "Leave <b>Install USB Drivers?</b> checked if the sensors connect through a USB adaptor.", target: "#chkInstallUsbDrivers", do: "read" },
+            { title: "Install", msg: "Click <b>Install</b>.", target: "#btnNext", do: "click", until: onPage(4) }
+        ], I_RUN()) });
+
+    L.push({ id: "upgrade", source: "Binventory Installer v5.5", section: "admin", page: "installer", installer: { mode: "upgrade" }, title: "Upgrading Binventory", manual: "7, 8, 9",
+        desc: "Upgrade a version below 5.4.9. The installer backs up your data first.",
+        outro: "On a networked system, upgrade the Host PC first, then each Client PC with Client Install.",
+        steps: [
+            { title: "Install detected", msg: "The installer found Binventory 5.4.2 on this PC.", target: "#mbBox", do: "read" },
+            { title: "Close the message", msg: "Click <b>OK</b>.", target: "#mbOK", do: "click", until: noDialog },
+            { title: "Your choices", msg: "<b>Remove</b> is selected first. Repair is not available below version 5.4.9.", target: "#grpInstallType", do: "read" },
+            { title: "Upgrade", msg: "Click <b>Upgrade Existing Installation</b>.", target: "#radServer", do: "click" },
+            next(6),
+            { title: "Upgrade Install Type", msg: "Use <b>Server/HOST Install</b> on the Host PC. Use <b>Client Install</b> on Workstation-only PCs. Client Install asks you to Connect to the Host PC.", target: "#grpUpgradeType", do: "read" },
+            { title: "Server/HOST Install", msg: "Click <b>Server/HOST Install</b>.", target: "#radUpgradeServer", do: "click" },
+            { title: "Start", msg: "Click <b>Next &gt;</b>.", target: "#btnNext", do: "click", until: function () { var i = inst(); return !!i && i.page() === 4; } },
+            { title: "Backup and removal", msg: "<b>Exporting Data Backup</b> saves an eBobExport .dat file in the Binventory Backups folder in Public Documents and in your Documents. Then the old version is removed.", target: "#pnlProgress", do: "wait", until: hasDialog },
+            { title: "Restart Required", msg: "The upgrade continues after a restart.", target: "#mbBox", do: "read" },
+            { title: "Restart now", msg: "Click <b>Yes</b>. If you click No, the installer continues after the next restart.", target: "#mbYes", do: "click", until: function () { var i = inst(); return !!i && (i.state.rebooting || i.state.resumed); } },
+            { title: "After the restart", msg: "The installer opens on its own and installs the new version.", target: "#pnlProgress", do: "wait", until: onPage(5) },
+            { title: "Finished", msg: "<b>Upgrade completed successfully.</b>", target: "#lblDescription", do: "read" },
+            { title: "Close the installer", msg: "Click <b>Finish</b>.", target: "#btnNext", do: "click", until: closed }
         ] });
 
-    L.push({ id: "network-install", section: "setup", kind: "doc", title: "Installing a networked system", manual: "4.4, 6",
-        desc: "Install order, which parts go on each PC and connecting each PC to the database.",
-        outro: "Each PC knows where the database is, and each site's Engine service is assigned to its site.",
-        doc: [
-            { title: "Four kinds of install", html: "<ol><li><b>Database.</b> The SQL database and the Workstation, usually on a server.</li><li><b>Database with Site.</b> Everything on one PC.</li><li><b>Site.</b> The Engine and Scheduler services plus the Workstation. One for each site of vessels.</li><li><b>Remote Workstation.</b> Only the Workstation. Any number of these.</li></ol><p>A system has only one database.</p>" },
-            { title: "Install the database first", html: "<p>Start on the PC or server that will host the database. Use <b>Advanced</b> setup and do a Database or Database with Site install.</p><p>Log in as an administrator, run Binventory Setup from the flash drive, choose Advanced and leave the destination folder at its default.</p>" },
-            { title: "Pick the parts for each install", html: "<p>Advanced setup asks which features to install. <b>Application</b> is always checked.</p><ul><li><b>Database:</b> Application and SQL Database</li><li><b>Database with Site:</b> every feature</li><li><b>Site:</b> Application plus Engine and Scheduler Services</li><li><b>Remote Workstation:</b> Application only</li></ul><p>Wait for it to finish and click <b>Finish</b>.</p>" },
-            { title: "Set up the sites", html: "<p>On the database PC, open the Workstation and add every site in <b>Site Maintenance</b>. You can also add each site's vessels now, or later from the site PC.</p><p>See the Site Setup lesson in this section.</p>" },
-            { title: "Install each site PC", html: "<p>On each PC that hosts a site, do a <b>Site</b> install with Advanced setup.</p><p>Then open <b>Binventory Administrator</b> under eBob in the start menu:</p><ol><li>Set <b>Server Name</b> to the database PC's static IP address or computer name followed by \\EBOB, for example 192.168.254.100\\EBOB. Leave it as (local)\\EBOB only on the database PC.</li><li>Type the database password in <b>Verify Password</b>. The default is in manual section 6.</li><li>Click <b>Verify</b> and wait for the success message.</li><li>Set the permanent site assignment for the Engine service. On a PC with no site, choose Unassigned or engine service not installed.</li><li>Click <b>Save</b>, then reboot the PC.</li></ol>" },
-            { title: "Point Workstations at the Engine", html: "<p>In <b>Site Setup</b>, each site's <b>Host IP Address</b> must be the static IP address or computer name of the PC running that site's Engine service. The default 127.0.0.1 only works on that PC itself.</p><p>A wrong Host IP Address is a common cause of the <b>Database Read Only</b> status on remote Workstations.</p>" },
-            { title: "SQL Server and firewall", html: "<p>The installer now sets these up for you. For reference, a networked system needs:</p><ul><li>Named Pipes and TCP/IP enabled for the EBOB SQL Server instance</li><li>an inbound firewall rule for SQL Server (EBOB), the sqlservr.exe program</li><li>an inbound rule for SQL Server Browser on UDP port 1434</li><li>an inbound rule for the Binventory Engine Service on TCP port 8093</li></ul>" }
+    L.push({ id: "repair", source: "Binventory Installer v5.5", section: "admin", page: "installer", installer: { mode: "repair" }, title: "Repairing Binventory",
+        desc: "Restore missing files, settings, services and shortcuts on version 5.4.9.",
+        outro: "Repair keeps your data. If it does not fix the problem, remove Binventory and install it again.",
+        steps: [
+            { title: "Install detected", msg: "The installer found Binventory 5.4.9 on this PC.", target: "#mbBox", do: "read" },
+            { title: "Close the message", msg: "Click <b>OK</b>.", target: "#mbOK", do: "click", until: noDialog },
+            { title: "Repair", msg: "<b>Remove</b> is selected first. Click <b>Repair Existing Installation</b>.", target: "#radServer", do: "click" },
+            { title: "Start the repair", msg: "The button now says <b>Repair</b>. Click it.", target: "#btnNext", do: "click", until: function () { var i = inst(); return !!i && i.page() === 4; } },
+            { title: "Repairing", msg: "The installer restores missing files, configuration, Windows services and shortcuts.", target: "#pnlProgress", do: "wait", until: onPage(5) },
+            { title: "Finished", msg: "<b>Repair completed successfully.</b>", target: "#lblDescription", do: "read" },
+            { title: "Close the installer", msg: "Click <b>Finish</b>.", target: "#btnNext", do: "click", until: closed }
         ] });
 
-    L.push({ id: "upgrade", section: "admin", kind: "doc", title: "Upgrading Binventory", manual: "7, 8, 9",
-        desc: "Moving from IMS or eBob 4, or updating an earlier Binventory 5.",
-        outro: "Always export your system before an upgrade so it can be restored.",
+    var CF_PANEL = '<div class="eg-replica" role="img" aria-label="Connection Failed window">' +
+        '<div class="eg-replica-title">Connection Failed</div>' +
+        '<p class="eg-replica-h">&#9888; Connection failed. Let\'s fix that!</p><p>Is your <b>Host PC</b> online?</p>' +
+        '<p class="eg-replica-yes">YES?:<br>1. Go to Host PC<br>2. Windows search<br>3. Find and open Command Prompt<br>4. In Command Prompt window after flashing cursor line type, IPCONFIG<br>5. Note the IPV4 address<br>6. Hit Retry button on this window<br>7. Enter the IPV4 address<br>8. Click Retry and Type IP, click Connect.</p>' +
+        '<p class="eg-replica-no">NO?:<br>Check that Host is plugged into power and network. Plug it in!<br>Then, check if Binventory software is installed on the Host PC.<br>If not, install Binventory Host!</p>' +
+        '<p class="eg-replica-btn"><span>Retry</span></p></div>';
+    var SQLERR_PANEL = '<div class="eg-replica" role="img" aria-label="SQL Installation Error message">' +
+        '<div class="eg-replica-title">SQL Installation Error</div>' +
+        "<p>SQL Install Error:<br>Contact BinMaster @ 402-434-9105</p><p>Possible Issues:<br>- Not enough space<br>- Incompatible Hardware/Software<br>- Remnants of old install causing conflicts<br>- SQL Instance Already installed.<br>- Unknown Conflict</p></div>";
+    L.push({ id: "ts-installer", source: "Binventory Installer v5.5", section: "trouble", kind: "doc", title: "Installer problems", manual: "4",
+        desc: "Connection failed, antivirus, restart required and other installer messages.",
+        outro: "If the installer still fails, call BinMaster Technical Support at 402-434-9105. Have the installer log ready.",
         doc: [
-            { title: "From IMS or eBob 4", html: "<p>Binventory 5 does not install over IMS v2.2.3 or eBob 4. Leave the old program installed until Binventory 5 is fully set up, and check the PC meets the new requirements.</p><p>If every sensor is a SmartBob-II or SmartBob-TS1, Protocol A is recommended. SmartBob-II firmware must be 2.3 or newer, and 2.8 or newer for Max Drop.</p>" },
-            { title: "Back up first", html: "<p>Binventory 5.4 installs over any earlier Binventory 5. Before you start, open the Workstation and use <b>System Export</b> under the File menu to save a backup with the default file name. Then close the Workstation.</p>" },
-            { title: "Stand-alone upgrade", html: "<ol><li>Log in to Windows as an administrator.</li><li>Run Binventory Setup from the flash drive and follow the instructions.</li><li>Open Binventory Administrator, confirm the database settings, enter the database password and click <b>Verify</b>.</li><li>Set both site assignments to your existing site and click <b>Save</b>.</li><li>Reboot the PC.</li></ol>" },
-            { title: "Networked upgrade", html: "<ol><li>Export the system, then note the Server Name in Binventory Administrator on a PC that does not host the database.</li><li>Collect the static IP address or computer name of each PC that hosts a site.</li><li>Close the Workstation on every PC.</li><li>Upgrade the database PC first, then verify the connection in Binventory Administrator, set its Engine site assignment, save and reboot.</li><li>On the database PC, open each site in Site Maintenance and set its <b>Host IP Address</b> to that site PC's address.</li><li>Upgrade every other PC the same way and reboot each one.</li></ol>" }
+            { title: "Administrator Rights Required", html: "<p>The message says: <i>Administrator privileges are required to run this installer. Please right-click the installer and select 'Run as administrator'.</i></p><p>Close it, right-click the installer and choose <b>Run as administrator</b>.</p><p><b>Binventory Installer is already running</b> means a copy is already open. Use that window, or close it and start again.</p>" },
+            { title: "Connection Failed", html: "<p>This window opens when <b>Connect</b> cannot reach the database on the Host PC.</p>" + CF_PANEL + "<p>Also check:</p><ul><li>Both PCs are on the same network.</li><li>The Host PC had a <b>Server/Host Install</b>. Its install adds the firewall rules for TCP 8093, UDP 1434 and the BINVENTORY SQL Server program.</li><li>Another firewall is not blocking those ports.</li></ul>" },
+            { title: "Antivirus", html: "<p>Antivirus software can block the installer or quarantine its files. The install then fails or rolls back.</p><ol><li>Check your antivirus history for a blocked Binventory or eBob file.</li><li>Ask IT to allow the installer and the C:\\Program Files (x86)\\eBob folder.</li><li>Run the installer again as an administrator.</li></ol><p>Do not turn antivirus off without IT's approval.</p>" },
+            { title: "Restart Required", html: "<p>Upgrades and removals need a restart. The message asks: <i>Would you like to restart now?</i></p><ul><li><b>Yes</b> restarts now. After an upgrade, the installer opens on its own and finishes.</li><li><b>No</b> shows <i>The installer will continue upon next reboot.</i> Restart when you are ready. Binventory is not usable until you do.</li></ul><p>A new SQL Server install can also ask for a restart before Binventory is used.</p>" },
+            { title: "SQL Installation Error", html: SQLERR_PANEL + "<p>Check free disk space and that the PC meets the SQL Server 2022 requirements. An old EBOB or BINVENTORY SQL instance can also cause this. Remove the old version first.</p>" },
+            { title: "Installation failed", html: "<p><i>Installation failed. All changes have been rolled back.</i> means nothing was left half installed. Fix the cause and run the installer again.</p><p>The installer writes a log to the Windows temp folder, %TEMP%. It is named BinventoryInstaller_ followed by the date and time. If the installer crashes, it writes BinventoryInstaller_Error.log there.</p>" }
         ] });
 
     /* ======================= SETUP: copy a vessel ======================= */
@@ -596,10 +737,10 @@
 
     L.push({ id: "ts-readings-wrong", section: "trouble", title: "Readings look wrong", manual: "5.4.7.2, 5.4.7.3, 5.4.7.4",
         desc: "Level, volume or weight do not match the vessel. Check its shape, size, density and offset.",
-        outro: "Volume comes from the vessel type and dimensions, and weight comes from the volume and density. The sensor offset shifts every level reading.",
+        outro: "Volume comes from the vessel type and dimensions, and weight is the volume times the density. The sensor offset shifts every level reading.",
         steps: flat([
             [
-            { title: "Start with the numbers", msg: "Cem Silo 1 shows its level, volume and weight here. If one looks wrong, check the vessel's setup.", target: vesselTile("v1"), do: "read" }
+            { title: "Start with the numbers", msg: function () { var w = tileValue("v1", "Weight"); if (w) tileMemo.w0 = w; return "Cem Silo 1 shows its level, volume and weight here. Its weight is <b>" + (w || "shown on the panel") + "</b>. If a number looks wrong, check the vessel's setup."; }, target: vesselTile("v1"), do: "read" }
             ],
             openVessel("v1", "Cem Silo 1"),
             [
@@ -616,7 +757,7 @@
             ],
             saveAndCloseVessel,
             [
-            { title: "Measure again", msg: "Binventory uses the new density from the next reading on. Click <b>Measure</b> on Cem Silo 1. In this practice copy the weight shown does not change.", target: vesselTile("v1") + ' [data-vessel-action="measure"]', do: "click" }
+            { title: "The weight follows the density", msg: function () { var w = tileValue("v1", "Weight"), v = tileValue("v1", "Volume"); return "Weight is volume times density. With the same volume of <b>" + (v || "product") + "</b>, Cem Silo 1 went from <b>" + (tileMemo.w0 || "the old weight") + "</b> at 40 lbs per cubic foot to <b>" + (w || "a new weight") + "</b> at 94."; }, target: vesselTile("v1"), do: "read" }
             ]
         ]) });
 
@@ -662,12 +803,12 @@
         ]) });
 
     /* final order inside each section */
-    var ORDER = ["plan", "install", "network-install", "tour", "system-setup", "site-setup", "sensor-network", "add-vessel", "more-vessels", "measure",
+    var ORDER = ["plan", "install", "install-import", "network-install", "install-site", "tour", "system-setup", "site-setup", "sensor-network", "add-vessel", "more-vessels", "measure",
         "level-alarms", "email-setup", "contacts", "email-alerts",
         "vessel-details", "groups", "schedules", "temporary-group",
         "inventory-report", "history-report", "site-status-report",
-        "users", "export", "upgrade",
-        "ts-comm-error", "ts-readings-wrong", "ts-no-schedule", "ts-no-email", "ts-pending-unknown", "ts-db-read-only"];
+        "users", "export", "upgrade", "repair",
+        "ts-comm-error", "ts-readings-wrong", "ts-no-schedule", "ts-no-email", "ts-pending-unknown", "ts-db-read-only", "ts-installer"];
     L.sort(function (a, b) { return ORDER.indexOf(a.id) - ORDER.indexOf(b.id); });
     L.forEach(function (l) { if (l.id === "measure") { l.section = "setup"; } });
 
