@@ -13149,7 +13149,7 @@
 
             var rectLeftX = hLeft - pointerW - 10;
             var rectRightX = hLeft + hW + 10;
-            var canLeft = rectLeftX >= 4;
+            var canLeft = rectLeftX >= (window.__ebobPointerMinX || 4);
             var canRight = rectRightX + pointerW <= window.innerWidth - 4;
             var useLeft =
                 pointerSide === "left"
@@ -13176,7 +13176,7 @@
             dom.circle.style.top = cy - radius + "px";
             var leftX = cx - radius - pointerW - 8;
             var rightX = cx + radius + 8;
-            if (leftX >= 4) {
+            if (leftX >= (window.__ebobPointerMinX || 4)) {
                 dom.pointer.textContent = "👉";
                 dom.pointer.style.left = leftX + "px";
             } else {

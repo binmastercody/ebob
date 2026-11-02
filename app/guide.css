@@ -451,3 +451,9 @@ html.eg-scenario #ebobTutorialTooltip.eg-native--min .eg-native-state,
 html.eg-scenario #ebobTutorialTooltip.eg-native--min #ebobTutorialStep { display: none !important; }
 .eg-topbar > .eg-tb-away { visibility: hidden; pointer-events: none; }
 
+/* v4: the startup splash and wait box center on the Binventory window, wherever the layout puts it */
+html.eg-emulator .startup-frm-splash, html.eg-emulator .startup-frm-wait { left: var(--eg-win-cx, 50%); top: var(--eg-win-cy, 50%); }
+/* v4: scenario card docked left of the window, same column and width as the lesson card */
+html.eg-scenario #ebobTutorialTooltip.eg-native--dock { width: min(21em, calc(100vw - 24px)) !important; max-width: min(21em, calc(100vw - 24px)) !important; }
+/* v4: Binventory dialogs open centered on the Binventory window, not on the browser window, so they stay clear of the card column */
+html.eg-emulator.eg-composed .backdrop { padding-left: calc(16px + var(--eg-dock-w, 0px)); }

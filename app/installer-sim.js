@@ -560,6 +560,9 @@
     setTimeout(function () {
         fit();
         window.__instReady = true;
+        /* no guided lesson: nothing else will place the window */
+        if (!lesson || !lesson.steps) document.documentElement.classList.add("eg-placed");
+        setTimeout(function () { document.documentElement.classList.add("eg-placed"); }, 1500);
         if (S.existing) msgBox("Binventory install detected.\n\nVersion: " + EXISTING + "\nLocation: C:\\Program Files (x86)\\eBob\n\nPlease review the installation options on the next screen.", "Binventory Install Detected", "OK", "info");
     }, 250);
 

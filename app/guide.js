@@ -16,7 +16,7 @@
     /* the page hosting the lesson: the Binventory emulator by default, or the installer replica */
     var HOST = window.EbobGuideHost || {
         shellId: "appShell",
-        minShellW: 960,
+        minShellW: 880,
         refit: function () { if (window.__ebobUpdateAppColumnLayout) window.__ebobUpdateAppColumnLayout(); },
         ready: function () {
             var ov = document.getElementById("startupOverlay");
@@ -64,6 +64,18 @@
         if (fab) fab.classList.add("eg-hidden-fab");
     }
     buildTopBar();
+    /* frmSplash and frmWait open centered on the Binventory window (as in Windows, CenterParent),
+       so they line up with the window wherever the layout puts it */
+    function syncWinCenter() {
+        if (!document.documentElement.classList.contains("eg-emulator") || window.EbobGuideHost) return;
+        var sh = document.getElementById("appShell"), root = document.documentElement;
+        var r = sh && sh.getBoundingClientRect();
+        if (!r || !r.width) { root.style.removeProperty("--eg-win-cx"); root.style.removeProperty("--eg-win-cy"); return; }
+        root.style.setProperty("--eg-win-cx", Math.round(r.left + r.width / 2) + "px");
+        root.style.setProperty("--eg-win-cy", Math.round(r.top + r.height / 2) + "px");
+    }
+    syncWinCenter(); setInterval(syncWinCenter, 120); window.addEventListener("resize", function () { requestAnimationFrame(syncWinCenter); });
+
     if (scenarioLesson) { initScenario(); return; }
     if (!lesson || !lesson.steps) { return; } /* free practice: just the top bar */
 
@@ -292,10 +304,13 @@
         });
         c.push({ x: m, y: vh - ch - m }, { x: vw - cw - m, y: vh - ch - m }, { x: m, y: top }, { x: vw - cw - m, y: top },
                { x: m, y: (vh - ch) / 2 }, { x: vw - cw - m, y: (vh - ch) / 2 });
+        var inWin = shellRect && shellRect.width > 0 ? avoid.map(function (a) {
+            return a.r > shellRect.left && a.l < shellRect.right ? { l: Math.max(a.l, shellRect.left - 4), t: a.t, r: Math.min(a.r, shellRect.right + 4), b: a.b } : a;
+        }) : avoid;
         for (var i = 0; i < c.length; i++) {
             var x = clampX(c[i].x), y = clampY(c[i].y);
-            var me = { l: x, t: y, r: x + cw, b: y + ch }, ok = true;
-            for (var k = 0; k < avoid.length; k++) if (hits(me, avoid[k])) { ok = false; break; }
+            var me = { l: x, t: y, r: x + cw, b: y + ch }, ok = true, av = c[i].dock ? inWin : avoid;
+            for (var k = 0; k < av.length; k++) if (hits(me, av[k])) { ok = false; break; }
             if (ok) return { x: x, y: y, dock: !!c[i].dock };
         }
         return null;
@@ -314,7 +329,7 @@
         var key = window.innerWidth + "x" + window.innerHeight + ":" + topPx + ":" + cw;
         if (key === composeKey) return composed;
         /* wait for the host to be ready, or its window is not sized yet */
-        if (!HOST.ready || HOST.ready()) composeKey = key;
+        if (!HOST.ready || HOST.ready()) { composeKey = key; markPlaced(); }
         root.style.setProperty("--eg-top", topPx + "px");
         root.style.setProperty("--eg-dock-w", (cw + 16) + "px");
         root.classList.add("eg-composed");
@@ -326,6 +341,8 @@
         lastSpot = null;
         return composed;
     }
+    /* the window is shown only once its place is decided, so it never appears in one spot and jumps to another */
+    function markPlaced() { requestAnimationFrame(function () { document.documentElement.classList.add("eg-placed"); }); }
     var userMin = false;
     function placeCoach(t, st) {
         compose();
@@ -664,6 +681,28 @@
         /* keep the scenario card off the circled item and its pointer */
         function nb(e) { if (!e || e.classList.contains("ebob-tutorial-hidden")) return null; var r = e.getBoundingClientRect(); if (!r.width) return null; return { l: r.left - 14, t: r.top - 14, r: r.right + 14, b: r.bottom + 14 }; }
         function hitN(a, b) { return a.l < b.r && a.r > b.l && a.t < b.b && a.b > b.t; }
+        /* same layout rule as the guided lessons: when the card and the window fit side by side, reserve a
+           column left of the window (html.eg-composed) so card + window are centered as one unit */
+        var nKey = "", nComposed = false;
+        function composeNative() {
+            var root = document.documentElement, tb = document.querySelector(".eg-topbar");
+            var topPx = tb ? Math.ceil(tb.getBoundingClientRect().bottom) : 0;
+            var had = tip.className;
+            tip.classList.remove("eg-native--narrow", "eg-native--min"); tip.classList.add("eg-native--dock");
+            var cw = tip.offsetWidth;
+            tip.className = had;
+            var key = innerWidth + "x" + innerHeight + ":" + topPx + ":" + cw;
+            if (key === nKey) return nComposed;
+            if (HOST.ready()) nKey = key;
+            root.style.setProperty("--eg-top", topPx + "px");
+            root.style.setProperty("--eg-dock-w", (cw + 16) + "px");
+            root.classList.add("eg-composed");
+            HOST.refit();
+            var sh = document.getElementById(HOST.shellId), sr = sh ? sh.getBoundingClientRect() : null;
+            nComposed = !!(sr && sr.width > 0 && sr.left - cw - 16 >= 12 && sr.right <= innerWidth - 12 && sr.width >= HOST.minShellW);
+            if (!nComposed) { root.classList.remove("eg-composed"); HOST.refit(); }
+            return nComposed;
+        }
         function placeNative() {
             if (tip.classList.contains("ebob-tutorial-hidden")) return;
             var av = [nb(document.getElementById("ebobTutorialCircle")), nb(document.getElementById("ebobTutorialPointer"))].filter(Boolean);
@@ -671,6 +710,21 @@
             var top = tb ? tb.getBoundingClientRect().bottom + 6 : 12;
             clearTopbar(av);
             tip.style.setProperty("transform", "none", "important"); tip.style.bottom = "auto";
+            var docked = composeNative();
+            /* the pointer stays out of the card column: it points from the right when the item is near the window's left edge */
+            var shR = docked ? document.getElementById(HOST.shellId).getBoundingClientRect() : null;
+            var minX = shR ? Math.round(shR.left) : 0;
+            window.__ebobPointerMinX = minX;
+            if (docked) {
+                var sr = document.getElementById(HOST.shellId).getBoundingClientRect();
+                tip.classList.remove("eg-native--narrow", "eg-native--min"); tip.classList.add("eg-native--dock");
+                var dw = tip.offsetWidth, dh = tip.offsetHeight, dx = sr.left - dw - 16;
+                var dy = Math.max(top, Math.min(vh - dh - m, dh <= sr.height ? sr.top : sr.top - (dh - sr.height) / 2));
+                var me0 = { l: dx, t: dy, r: dx + dw, b: dy + dh }, clear = true;
+                av.forEach(function (a) { var c = a.r > sr.left ? { l: Math.max(a.l, sr.left - 4), t: a.t, r: a.r, b: a.b } : a; if (hitN(me0, c)) clear = false; });
+                if (clear && dh <= vh - top - m) { tip.style.left = Math.round(dx) + "px"; tip.style.top = Math.round(dy) + "px"; return; }
+                tip.classList.remove("eg-native--dock");
+            } else tip.classList.remove("eg-native--dock");
             /* full card, then a narrower card, then a compact card; each tries the usual spots and then a grid */
             var modes = ["", "eg-native--narrow", "eg-native--narrow eg-native--min"];
             for (var md = 0; md < modes.length; md++) {
