@@ -64,7 +64,6 @@
         if (fab) fab.classList.add("eg-hidden-fab");
     }
     buildTopBar();
-
     if (scenarioLesson) { initScenario(); return; }
     if (!lesson || !lesson.steps) { return; } /* free practice: just the top bar */
 
@@ -153,8 +152,12 @@
     function relayout() {
         if (!coach || S.finished || S.phase === "loading" || coach.hidden) return;
         var i = S.review >= 0 ? S.review : S.idx, st = steps[i], t = target(st);
+        if (frozen(t)) return;
         placeCoach(vis(t) ? t : null, st);
     }
+    /* once a step is done and the item it used has gone (a Close or Finish button), the card stays put:
+       the window behind it is closing, so there is nothing to move away from */
+    function frozen(t) { return S.review < 0 && S.phase === "done" && !vis(t) && !!lastSpot; }
     var hintTimer = 0;
     function hint(text, strong) {
         elHint.textContent = text;
@@ -395,7 +398,7 @@
             }
         }
         if (tv) placeRing(t, st);
-        placeCoach(tv ? t : null, st);
+        if (!frozen(t)) placeCoach(tv ? t : null, st);
 
         if (S.review >= 0) {
             if (tv) { ring.classList.add("on", "eg-ring--review"); placeRing(t, st); } else { ring.classList.remove("on"); hand.classList.remove("on"); }
@@ -461,8 +464,9 @@
                 S.phase = "ready"; ring.classList.remove("eg-ring--done");
                 setState("go", verb(st)); updateButtons(); return;
             }
-            if (D.get().pace === "manual" && st.do !== "read") return;
-            if (now() - S.doneAt >= D.pace().hold) advance();
+            if (D.get().pace === "manual" && st.do !== "read" && !(S.idx + 1 >= steps.length && !vis(t))) return;
+            var holdMs = S.idx + 1 >= steps.length && !vis(t) ? Math.min(450, D.pace().hold) : D.pace().hold;
+            if (now() - S.doneAt >= holdMs) advance();
         }
     }
 
@@ -560,30 +564,43 @@
         else if (st.do === "uncheck" && t.checked) t.click();
     }
 
-    /* ---- finish ---- */
+    /* ---- finish ----
+     * The card fades out where it is, then one centered "Lesson complete" panel fades in.
+     * Nothing re-places during the change; with reduced motion both happen at once. */
     function finish() {
+        if (S.finished) return;
         S.finished = true;
         markDone(lesson.id);
-        ring.classList.remove("on"); hand.classList.remove("on");
-        coach.hidden = true;
+        ring.className = "eg-ring"; hand.className = "eg-hand";   /* gone at once, no fading ring left at the old spot */
+        clearTimeout(hintTimer); elHint.classList.remove("on");
         var list = LS.lessons, at = list.indexOf(lesson), next = null;
         for (var k = at + 1; k < list.length; k++) { if (list[k].steps || list[k].scenario || list[k].doc) { next = list[k]; break; } }
         var ov = document.createElement("div");
-        ov.className = "eg-success";
+        ov.className = "eg-success eg-success--enter" + (HOST.shellId === "appShell" ? " eg-success--dim" : "");
         ov.setAttribute("role", "dialog"); ov.setAttribute("aria-modal", "true"); ov.setAttribute("aria-labelledby", "egSuccessTitle");
         ov.innerHTML =
             '<div class="eg-success-card">' +
             '<svg class="eg-check" viewBox="0 0 52 52" aria-hidden="true"><circle class="eg-check-c" cx="26" cy="26" r="24"/><path class="eg-check-p" d="M15 27l7.5 7.5L38 19"/></svg>' +
             '<p class="eg-success-kicker">Lesson complete</p>' +
             '<h2 id="egSuccessTitle" tabindex="-1">' + esc(lesson.title) + "</h2>" +
-            '<p class="eg-success-text">' + esc(lesson.outro || "") + "</p>" +
+            (lesson.outro ? '<p class="eg-success-text">' + esc(lesson.outro) + "</p>" : "") +
+            (next ? '<p class="eg-success-next">Next: ' + esc(next.title) + "</p>" : "") +
             '<div class="eg-success-actions">' +
-            (next ? '<a class="eg-btn eg-btn--big" href="' + lessonHref(next) + '">Next lesson: ' + esc(next.title) + ICON_NEXT + "</a>" : "") +
-            '<a class="eg-btn eg-btn--light" href="index.html">' + ICON_GRID + "All lessons</a>" +
-            '<a class="eg-btn eg-btn--light" href="' + lessonHref(lesson) + '">Do it again</a>' +
-            "</div></div>";
-        document.body.appendChild(ov);
-        setTimeout(function () { var h2 = ov.querySelector("h2"); if (h2) h2.focus(); }, 30);
+            (next ? '<a class="eg-btn eg-btn--big" href="' + lessonHref(next) + '" aria-label="Next lesson: ' + esc(next.title) + '">Next lesson' + ICON_NEXT + "</a>" : "") +
+            '<div class="eg-success-row">' +
+            '<a class="eg-btn eg-btn--light" href="index.html">' + ICON_GRID + "Back to guide</a>" +
+            '<a class="eg-btn eg-btn--light" href="' + lessonHref(lesson) + '">Repeat</a>' +
+            "</div></div></div>";
+        var fadeMs = D.reduceMotion() ? 0 : 160;
+        coach.classList.add("eg-coach--leaving");
+        setTimeout(function () {
+            coach.hidden = true;
+            document.documentElement.classList.add("eg-lesson-done");
+            document.body.appendChild(ov);
+            void ov.offsetWidth;
+            ov.classList.remove("eg-success--enter");
+            var h2 = ov.querySelector("h2"); if (h2) { try { h2.focus({ preventScroll: true }); } catch (e) { h2.focus(); } }
+        }, fadeMs);
     }
 
     /* expose a small, read-only view for tests and support */

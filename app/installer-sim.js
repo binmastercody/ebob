@@ -373,11 +373,20 @@
         $("instShell").hidden = false; $("instClosed").hidden = true;
         run();
     }
-    function closeInstaller(text, btnText, btnAction) {
+    /* Finish or Close: the window fades out (no fade with reduced motion) and is then removed from view.
+       In a guided lesson the guide shows the end of the lesson, so no "installer closed" note is left behind. */
+    function closeInstaller(text, btnText, btnAction, quiet) {
         clearTimeout(runTimer);
         S.closed = true; S.busy = false;
-        $("instShell").hidden = true;
         $("mbLayer").innerHTML = "";
+        var w = $("instShell"), reduce = document.documentElement.classList.contains("eg-reduce-motion");
+        if (quiet) {
+            if (reduce) { w.hidden = true; }
+            else { w.classList.add("iw-closing"); setTimeout(function () { if (S.closed) { w.hidden = true; } w.classList.remove("iw-closing"); }, 180); }
+            var note = document.querySelector(".inst-note"); if (note) note.hidden = true;
+            return;
+        }
+        w.hidden = true;
         $("instClosedText").textContent = text;
         var b = $("instReopen");
         b.textContent = btnText || "Open the installer again";
@@ -489,7 +498,7 @@
             return go(3);
         }
         if (p === 3) { S.op = "install"; return run(); }
-        if (p === 5) { return closeInstaller(S.op === "remove" ? "The installer closed." : "The installer closed. Binventory Workstation starts on its own after a successful install, upgrade or repair."); }
+        if (p === 5) { return closeInstaller(S.op === "remove" ? "The installer closed." : "The installer closed. Binventory Workstation starts on its own after a successful install, upgrade or repair.", null, null, !!lesson); }
         if (p === 6) {
             if (checked("radUpgradeClient") && !S.connected) return msgBox("Please click Connect to verify connectivity before proceeding.", "Connection Test Required", "OK", "warn");
             S.op = "upgrade"; return run();

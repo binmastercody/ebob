@@ -146,8 +146,22 @@ html.eg-emulator.eg-composed .page-wrap { margin-left: var(--eg-dock-w, 0px); ma
 .eg-hand.on.eg-hand--up { animation-name: eg-tap-up; }
 
 /* ================= success screen ================= */
-.eg-success { position: fixed; inset: 0; z-index: 7000; display: flex; align-items: center; justify-content: center; padding: 24px; background: rgba(30,27,75,.55); backdrop-filter: blur(2px); }
-.eg-success-card { width: min(34em, 100%); padding: 2em 2em 1.6em; border-radius: 24px; background: #fff; text-align: center; box-shadow: 0 24px 60px rgba(0,0,0,.4); font-family: "DM Sans", Arial, sans-serif; font-size: calc(16px * var(--eg-scale)); color: var(--eg-text); }
+/* lesson end: one centered panel below the top bar. On the installer page the window is gone, so no dim;
+   on the Workstation page a light dim keeps the panel in front without hiding where you finished. */
+.eg-success { position: fixed; inset: var(--eg-top, 3.4em) 0 0 0; z-index: 7000; display: flex; align-items: center; justify-content: center; padding: 16px 24px 24px; box-sizing: border-box; overflow-y: auto; background: transparent; transition: opacity .22s ease, background-color .22s ease; }
+.eg-success--dim { background: rgba(30,27,75,.32); }
+.eg-success-card { transition: opacity .22s ease, transform .22s ease; }
+.eg-success--enter { opacity: 0; }
+.eg-success--enter .eg-success-card { opacity: 0; transform: translateY(8px); }
+.eg-coach.eg-coach--leaving { opacity: 0; transition: opacity .16s ease; pointer-events: none; }
+html.eg-reduce-motion .eg-success, html.eg-reduce-motion .eg-success-card, html.eg-reduce-motion .eg-coach.eg-coach--leaving { transition: none !important; transform: none !important; }
+.eg-success-next { margin: -.6em 0 1em; font-weight: 700; color: var(--eg-ink); }
+.eg-success-row { display: flex; gap: .55em; }
+.eg-success-row > .eg-btn { flex: 1 1 0; white-space: nowrap; }
+@media (max-width: 420px) { .eg-success-row { flex-direction: column; } }
+html.eg-hc .eg-success--dim { background: rgba(0,0,0,.6); }
+html.eg-hc .eg-success-next, html.eg-hc .eg-success-text { color: #000; }
+.eg-success-card { width: min(30em, 100%); max-height: 100%; overflow-y: auto; box-sizing: border-box; padding: 1.6em 1.8em 1.4em; border-radius: 24px; background: #fff; text-align: center; box-shadow: 0 24px 60px rgba(0,0,0,.4); font-family: "DM Sans", Arial, sans-serif; font-size: calc(16px * var(--eg-scale)); color: var(--eg-text); }
 .eg-success-card h2 { margin: .1em 0 .4em; font-family: "Outfit", system-ui, sans-serif; font-size: 1.7em; color: var(--eg-ink); outline: none; }
 .eg-success-kicker { margin: .6em 0 0; font-size: .8em; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--eg-green); }
 .eg-success-text { margin: 0 0 1.3em; line-height: 1.55; color: var(--eg-muted); }
@@ -155,7 +169,7 @@ html.eg-emulator.eg-composed .page-wrap { margin-left: var(--eg-dock-w, 0px); ma
 .eg-btn--big { min-height: 3.1em; font-size: 1.05em; }
 .eg-btn--light { background: #fff; color: var(--eg-purple); }
 .eg-btn--light:hover { background: #f0ecfa !important; color: #4a3289; }
-.eg-check { width: 4.2em; height: 4.2em; }
+.eg-check { width: 3.4em; height: 3.4em; }
 .eg-check-c { fill: none; stroke: #16a34a; stroke-width: 3; stroke-dasharray: 160; stroke-dashoffset: 160; animation: eg-draw .6s ease forwards; }
 .eg-check-p { fill: none; stroke: #16a34a; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 40; stroke-dashoffset: 40; animation: eg-draw .35s .5s ease forwards; }
 @keyframes eg-draw { to { stroke-dashoffset: 0; } }
@@ -436,3 +450,4 @@ html.eg-scenario #ebobTutorialTooltip.eg-native--min .eg-bar,
 html.eg-scenario #ebobTutorialTooltip.eg-native--min .eg-native-state,
 html.eg-scenario #ebobTutorialTooltip.eg-native--min #ebobTutorialStep { display: none !important; }
 .eg-topbar > .eg-tb-away { visibility: hidden; pointer-events: none; }
+
