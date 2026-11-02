@@ -11,8 +11,11 @@
     var sp = new URLSearchParams(location.search);
     var lesson = window.EbobLessons && sp.get("lesson") ? window.EbobLessons.byId(sp.get("lesson")) : null;
     var MODE = (lesson && lesson.installer && lesson.installer.mode) || sp.get("mode") || "fresh";
+    /* upgrade lesson: after Remove and the restart, the new installer runs a fresh install */
+    var AFTER_REMOVE = lesson && lesson.installer && lesson.installer.afterRemove;
     var HOST_IP = "192.168.1.20";                       /* the sample Host PC that answers Connect */
     var EXT_SQL_IP = "192.168.1.30";                    /* a sample external SQL Server on its default instance */
+    var EXISTING_AT_START = MODE === "upgrade" ? "5.4.2" : MODE === "repair" ? "5.4.9" : "";
     var EXISTING = MODE === "upgrade" ? "5.4.2" : MODE === "repair" ? "5.4.9" : "";
     var SITES = ["Current Location", "North Plant"];
     var DATS = [
@@ -341,7 +344,19 @@
             $("lblStatus").textContent = "Uninstall completed successfully.";
             go(5); $("lblDescription").innerHTML = nl(S.doneText);
             msgBox("A restart is required to complete the uninstall.\n\nWould you like to restart now?", "Restart Required", "Yes|No", "question", function (a) {
-                if (a === "Yes") reboot(function () { closeInstaller("The PC restarted and Binventory was removed."); });
+                if (a === "Yes" && AFTER_REMOVE === "fresh") {
+                    /* upgrade lesson: the installer closes, then Windows asks to restart */
+                    closeInstaller("Windows needs to restart to finish removing Binventory.", "Restart", function () {
+                        S.restartPending = false;
+                        reboot(function () { S.removed = true; closeInstaller("The PC restarted and Binventory was removed. Next, install the new version.", "Run the new installer", freshInstaller); });
+                    });
+                    S.restartPending = true;
+                    $("instClosed").classList.add("inst-restart");
+                }
+                else if (a === "Yes") reboot(function () {
+                    S.removed = true;
+                    closeInstaller("The PC restarted and Binventory was removed.");
+                });
                 else msgBox("Please restart your computer to complete the uninstall.", "Restart Later", "OK", "info");
             });
             return;
@@ -367,6 +382,25 @@
         var r = $("rebootScreen"); r.hidden = false; S.rebooting = true;
         setTimeout(function () { r.hidden = true; S.rebooting = false; after(); }, 2200);
     }
+    /* the new installer on a PC with no Binventory: a normal fresh install, with the removal backup to import */
+    function freshInstaller() {
+        EXISTING = ""; S.existing = false; S.upgrade = false; S.op = "install"; S.closed = false; S.history = []; S.page = 0;
+        S.license = false; S.importNow = false; S.datValid = false; S.datPath = ""; S.doneText = "";
+        setChecked("chkAcceptLicense", false); setChecked("radImportLater", true);
+        $("txtDatFile").value = ""; $("lblDatStatus").textContent = "No file selected."; $("lblDatStatus").className = "iw-lbl";
+        setText("radServer", "Server/Host Install"); setText("radClient", "Client Install");
+        show("radCustom", true); show("radRepairOption", false); show("lblRepairError", false);
+        inputOf("radRepairOption").disabled = false; $("radRepairOption").classList.remove("iw-off");
+        $("grpInstallType").style.height = "125px";
+        setChecked("radServer", true); setBar(0); $("lblStatus").textContent = "Ready";
+        var d = new Date(), pad = function (n) { return (n < 10 ? "0" : "") + n; };
+        var M = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        DATS.unshift({ file: "eBobExport_" + d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate()) + "_" + pad(d.getHours()) + pad(d.getMinutes()) + "00.dat",
+            loc: "C:\\Users\\Public\\Documents\\Binventory Backups", date: M[d.getMonth()] + " " + d.getDate() + ", " + d.getFullYear(), ver: EXISTING_AT_START });
+        computeParts(); render();
+        $("instClosed").hidden = true; $("instShell").hidden = false;
+        fit();
+    }
     function resumeUpgrade() {
         /* RunOnce "BinventoryInstaller" starts the installer again with /resume=upgrade */
         S.closed = false; S.resumed = true; S.op = "upgrade-resume";
@@ -388,6 +422,7 @@
         }
         w.hidden = true;
         $("instClosedText").textContent = text;
+        $("instClosed").classList.remove("inst-restart");
         var b = $("instReopen");
         b.textContent = btnText || "Open the installer again";
         b.onclick = btnAction || function () { location.reload(); };
@@ -538,6 +573,10 @@
         $("instShell").style.zoom = z;
         /* the margin is inside the zoom, so divide to get dockW screen pixels */
         $("instShell").style.marginLeft = comp ? (dockW / z) + "px" : "0px";
+        /* the closed note takes the window's place and size, so it sits beside the guide card like the window did */
+        var cs = $("instClosed").style;
+        cs.marginLeft = comp ? dockW + "px" : ""; cs.marginRight = comp ? "0px" : "";
+        cs.width = comp ? Math.round(560 * z) + "px" : ""; cs.maxWidth = comp ? "none" : ""; cs.boxSizing = comp ? "border-box" : "";
         var w = $("instShell"), l = $("mbLayer");
         if (!w.hidden) {
             var r = w.getBoundingClientRect(), d = desk.getBoundingClientRect();

@@ -343,11 +343,13 @@
     }
     /* the window is shown only once its place is decided, so it never appears in one spot and jumps to another */
     function markPlaced() { requestAnimationFrame(function () { document.documentElement.classList.add("eg-placed"); }); }
-    var userMin = false;
+    var userMin = false, lastSR = null;
     function placeCoach(t, st) {
         compose();
         var shell = document.getElementById(HOST.shellId);
         var sr = shell ? shell.getBoundingClientRect() : null;
+        /* while the window is closed for a moment (a restart), keep the card in its column */
+        if (sr && sr.width > 0) lastSR = sr; else if (composed && lastSR) sr = lastSR;
         var avoid = avoidRects(t, st);
         var tries = userMin ? [true] : [false, true];
         var spot = null, compact = userMin;
@@ -644,7 +646,7 @@
     };
 
     setInterval(tick, 60);
-    window.addEventListener("resize", function () { lastSpot = null; tick(); });
+    window.addEventListener("resize", function () { lastSpot = null; lastSR = null; tick(); });
     window.addEventListener("scroll", tick, true);
     D.onChange(function () { lastSpot = null; if (!S.finished && S.phase !== "loading") { renderText(S.review >= 0 ? S.review : S.idx, S.review >= 0); updateButtons(); } });
 

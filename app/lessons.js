@@ -637,25 +637,37 @@
             { title: "Install", msg: "Click <b>Install</b>.", target: "#btnNext", do: "click", until: onPage(4) }
         ], I_RUN()) });
 
-    L.push({ id: "upgrade", source: "Binventory Installer v5.5", section: "admin", page: "installer", installer: { mode: "upgrade" }, title: "Upgrading Binventory", manual: "7, 8, 9",
-        desc: "Upgrade a version below 5.4.9. The installer backs up your data first.",
-        outro: "On a networked system, upgrade the Host PC first, then each Client PC with Client Install.",
+    /* Upgrading: remove the old version, restart, then install the new version. The installer's Upgrade option is not used. */
+    function removedDesk() { var i = inst(); return !!i && i.state.removed && !i.state.rebooting && !i.open(); }
+    function freshOpen() { var i = inst(); return !!i && i.open() && !i.state.existing && i.page() === 0 && !i.dialog(); }
+    L.push({ id: "upgrade", source: "Binventory Installer v5.5", section: "admin", page: "installer", installer: { mode: "upgrade", afterRemove: "fresh" }, title: "Upgrading Binventory", manual: "7, 8, 9",
+        desc: "Back up, remove the old version, restart, then install the new version.",
+        outro: "Open Binventory Workstation and check that each vessel takes a new reading. On a networked system, do the Host PC first, then remove and reinstall each Client PC with Client Install.",
         steps: [
-            { title: "Install detected", msg: "The installer found Binventory 5.4.2 on this PC.", target: "#mbBox", do: "read" },
+            { title: "Back up first", msg: "Before you start, make a backup in Binventory Workstation: <b>File</b>, then <b>System Export</b>. Keep the DAT file. The lesson <a href=\"emulator.html?tutorial=free-mode&amp;lesson=export\" target=\"_blank\" rel=\"noopener\">Backing up with System Export</a> shows how.", target: "#mbBox", do: "read" },
+            { title: "Install detected", msg: "Run the new installer. It found Binventory 5.4.2 on this PC.", target: "#mbBox", do: "read" },
             { title: "Close the message", msg: "Click <b>OK</b>.", target: "#mbOK", do: "click", until: noDialog },
-            { title: "Your choices", msg: "<b>Remove</b> is selected first. Repair is not available below version 5.4.9.", target: "#grpInstallType", do: "read" },
-            { title: "Upgrade", msg: "Click <b>Upgrade Existing Installation</b>.", target: "#radServer", do: "click" },
-            next(6),
-            { title: "Upgrade Install Type", msg: "Use <b>Server/HOST Install</b> on the Host PC. Use <b>Client Install</b> on Workstation-only PCs. Client Install asks you to Connect to the Host PC.", target: "#grpUpgradeType", do: "read" },
-            { title: "Server/HOST Install", msg: "Click <b>Server/HOST Install</b>.", target: "#radUpgradeServer", do: "click" },
-            { title: "Start", msg: "Click <b>Next &gt;</b>.", target: "#btnNext", do: "click", until: function () { var i = inst(); return !!i && i.page() === 4; } },
-            { title: "Backup and removal", msg: "<b>Exporting Data Backup</b> saves an eBobExport .dat file in the Binventory Backups folder in Public Documents and in your Documents. Then the old version is removed.", target: "#pnlProgress", do: "wait", until: hasDialog },
-            { title: "Restart Required", msg: "The upgrade continues after a restart.", target: "#mbBox", do: "read" },
-            { title: "Restart now", msg: "Click <b>Yes</b>. If you click No, the installer continues after the next restart.", target: "#mbYes", do: "click", until: function () { var i = inst(); return !!i && (i.state.rebooting || i.state.resumed); } },
-            { title: "After the restart", msg: "The installer opens on its own and installs the new version.", target: "#pnlProgress", do: "wait", until: onPage(5) },
-            { title: "Finished", msg: "<b>Upgrade completed successfully.</b>", target: "#lblDescription", do: "read" },
-            { title: "Close the installer", msg: "Click <b>Finish</b>.", target: "#btnNext", do: "click", until: closed }
-        ] });
+            { title: "Use Remove, not Upgrade", msg: "Do not use <b>Upgrade Existing Installation</b>. Remove the old version, restart, then install the new one. It is the more reliable way.", target: "#grpInstallType", do: "read" },
+            { title: "Remove", msg: "Click <b>Remove Existing Binventory Installation</b>.", target: "#radClient", do: "click" },
+            { title: "Uninstall", msg: "The button now says <b>Uninstall</b>. Click it.", target: "#btnNext", do: "click", until: function () { var i = inst(); return !!i && i.page() === 4; } },
+            { title: "Backup and removal", msg: "<b>Exporting Data Backup</b> saves an eBobExport DAT file in the Binventory Backups folder in Public Documents. Then the old version is removed.", target: "#pnlProgress", do: "wait", until: hasDialog },
+            { title: "Restart Required", msg: "Windows needs a restart to finish the removal.", target: "#mbBox", do: "read" },
+            { title: "Restart", msg: "Click <b>Yes</b>. The installer closes.", target: "#mbYes", do: "click", until: function () { var i = inst(); return !!i && !!i.state.restartPending; } },
+            { title: "Restart the computer", msg: "Save your work and close other programs. Then click <b>Restart</b>.", target: "#instReopen", do: "click", until: function () { var i = inst(); return !!i && (i.state.rebooting || i.state.removed); } },
+            { title: "Restarting", msg: "Wait for the PC to restart.", target: "#instDesk", ring: false, do: "wait", until: removedDesk },
+            { title: "Run the new installer", msg: "Binventory is removed. Click <b>Run the new installer</b>.", target: "#instReopen", do: "click", until: freshOpen },
+            { title: "Server/Host Install", msg: "This is a fresh install. On the Host PC, click <b>Server/Host Install</b>. On a Client PC you would use Client Install.", target: "#radServer", do: "click" },
+            next(1)
+        ].concat(I_LICENSE, [
+            next(2),
+            { title: "Restore your data", msg: "Click <b>Import Now</b> to load the backup made during the removal.", target: "#radImportNow", do: "click" },
+            { title: "Search", msg: "Click <b>Search</b>.", target: "#btnSearchDat", do: "click", until: hasDialog },
+            { title: "Pick the backup", msg: "The newest file is the backup from the removal. It is selected. Click <b>Use This File</b>.", target: "#dpUse", do: "click", until: noDialog },
+            { title: "Project Validated", msg: "The status shows <b>Project Validated</b> and the version the backup came from.", target: "#lblDatStatus", do: "read" },
+            next(3),
+            { title: "Install", msg: "Click <b>Install</b>.", target: "#btnNext", do: "click", until: onPage(4) }
+        ], (function (r) { return r.slice(0, 2).concat([{ title: "Check the readings", msg: "When the installer closes, Binventory Workstation opens. Check that each vessel shows its level, then take a reading to confirm the sensors answer.", target: "#lblDescription", do: "read" }], r.slice(2)); })(I_RUN("<b>Install Finished Successfully.</b> Binventory Workstation starts on its own with your data.")))
+    });
 
     L.push({ id: "repair", source: "Binventory Installer v5.5", section: "admin", page: "installer", installer: { mode: "repair" }, title: "Repairing Binventory",
         desc: "Restore missing files, settings, services and shortcuts on version 5.4.9.",
@@ -686,7 +698,7 @@
             { title: "Administrator Rights Required", html: "<p>The message says: <i>Administrator privileges are required to run this installer. Please right-click the installer and select 'Run as administrator'.</i></p><p>Close it, right-click the installer and choose <b>Run as administrator</b>.</p><p><b>Binventory Installer is already running</b> means a copy is already open. Use that window, or close it and start again.</p>" },
             { title: "Connection Failed", html: "<p>This window opens when <b>Connect</b> cannot reach the database on the Host PC.</p>" + CF_PANEL + "<p>Also check:</p><ul><li>Both PCs are on the same network.</li><li>The Host PC had a <b>Server/Host Install</b>. Its install adds the firewall rules for TCP 8093, UDP 1434 and the BINVENTORY SQL Server program.</li><li>Another firewall is not blocking those ports.</li></ul>" },
             { title: "Antivirus", html: "<p>Antivirus software can block the installer or quarantine its files. The install then fails or rolls back.</p><ol><li>Check your antivirus history for a blocked Binventory or eBob file.</li><li>Ask IT to allow the installer and the C:\\Program Files (x86)\\eBob folder.</li><li>Run the installer again as an administrator.</li></ol><p>Do not turn antivirus off without IT's approval.</p>" },
-            { title: "Restart Required", html: "<p>Upgrades and removals need a restart. The message asks: <i>Would you like to restart now?</i></p><ul><li><b>Yes</b> restarts now. After an upgrade, the installer opens on its own and finishes.</li><li><b>No</b> shows <i>The installer will continue upon next reboot.</i> Restart when you are ready. Binventory is not usable until you do.</li></ul><p>A new SQL Server install can also ask for a restart before Binventory is used.</p>" },
+            { title: "Restart Required", html: "<p>Removing Binventory needs a restart. The message asks: <i>Would you like to restart now?</i></p><ul><li><b>Yes</b> restarts now. Then run the new installer and do a normal install.</li><li><b>No</b> shows <i>Please restart your computer to complete the uninstall.</i> Restart before you install again.</li></ul><p>To upgrade, remove the old version, restart, then install the new version. Do not use the installer's Upgrade option.</p><p>A new SQL Server install can also ask for a restart before Binventory is used.</p>" },
             { title: "SQL Installation Error", html: SQLERR_PANEL + "<p>Check free disk space and that the PC meets the SQL Server 2022 requirements. An old EBOB or BINVENTORY SQL instance can also cause this. Remove the old version first.</p>" },
             { title: "Installation failed", html: "<p><i>Installation failed. All changes have been rolled back.</i> means nothing was left half installed. Fix the cause and run the installer again.</p><p>The installer writes a log to the Windows temp folder, %TEMP%. It is named BinventoryInstaller_ followed by the date and time. If the installer crashes, it writes BinventoryInstaller_Error.log there.</p>" }
         ] });
