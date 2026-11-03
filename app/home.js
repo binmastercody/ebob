@@ -29,13 +29,13 @@
   ];
   /* task tiles: every lesson except the Advanced ones */
   var TASKS = [
-    { id: "install", title: "Install and upgrade", line: "Put Binventory on a PC, or upgrade it.", icon: "download", acc: "#312e81", tint: "#eceefb", ids: ["plan", "install", "network-install", "install-import", "upgrade"] },
-    { id: "site", title: "Set up my site", line: "Sensors, vessels and site settings.", icon: "silo", acc: "#5b3fa6", tint: "#f0ecfa", ids: ["tour", "system-setup", "site-setup", "sensor-network", "add-vessel", "more-vessels", "measure"] },
-    { id: "alerts", title: "Alerts and email", line: "Get an email when a level is high or low.", icon: "bell", acc: "#c2410c", tint: "#fff1e8", ids: ["level-alarms", "email-setup", "contacts", "email-alerts"] },
-    { id: "readings", title: "Readings and schedules", line: "Measure vessels on a schedule.", icon: "gauge", acc: "#0f766e", tint: "#e6f6f4", ids: ["vessel-details", "groups", "schedules", "temporary-group"] },
-    { id: "reports", title: "Reports", line: "Print or email inventory reports.", icon: "chart", acc: "#1d4ed8", tint: "#e9effd", ids: ["inventory-report", "history-report", "site-status-report"] },
-    { id: "users", title: "Users and backups", line: "Logins and backing up your setup.", icon: "users", acc: "#4b5563", tint: "#f1f2f4", ids: ["users", "export"] },
-    { id: "trouble", title: "Fix a problem", line: "Step-by-step fixes for common problems.", icon: "wrench", acc: "#b91c1c", tint: "#fdecec", wide: true, ids: ["ts-comm-error", "ts-readings-wrong", "ts-no-schedule", "ts-no-email", "ts-pending-unknown", "ts-db-read-only", "ts-installer"] }
+    { id: "install", title: "Install and upgrade", line: "Put Binventory on a PC, or upgrade it.", icon: "download", ids: ["plan", "install", "network-install", "install-import", "upgrade"] },
+    { id: "site", title: "Set up my site", line: "Sensors, vessels and site settings.", icon: "silo", ids: ["tour", "system-setup", "site-setup", "sensor-network", "add-vessel", "more-vessels", "measure"] },
+    { id: "alerts", title: "Alerts and email", line: "Get an email when a level is high or low.", icon: "bell", ids: ["level-alarms", "email-setup", "contacts", "email-alerts"] },
+    { id: "readings", title: "Readings and schedules", line: "Measure vessels on a schedule.", icon: "gauge", ids: ["vessel-details", "groups", "schedules", "temporary-group"] },
+    { id: "reports", title: "Reports", line: "Print or email inventory reports.", icon: "chart", ids: ["inventory-report", "history-report", "site-status-report"] },
+    { id: "users", title: "Users and backups", line: "Logins and backing up your setup.", icon: "users", ids: ["users", "export"] },
+    { id: "trouble", title: "Fix a problem", line: "Step-by-step fixes for common problems.", icon: "wrench", wide: true, ids: ["ts-comm-error", "ts-readings-wrong", "ts-no-schedule", "ts-no-email", "ts-pending-unknown", "ts-db-read-only", "ts-installer"] }
   ];
   var ADV = ["install-site", "install-external-sql"];
   var STATUS = [
@@ -96,13 +96,13 @@
     TASKS.forEach(function (t, i) {
       var ls = t.ids.map(byId).filter(Boolean), isOpen = openTask === t.id;
       var doneN = ls.filter(function (l) { return p[l.id]; }).length;
-      html += '<h3 class="hm-tile-h' + (t.wide ? " hm-tile-h--wide" : "") + '" data-i="' + i + '" style="--acc:' + t.acc + ";--tint:" + t.tint + '">' +
+      html += '<h3 class="hm-tile-h' + (t.wide ? " hm-tile-h--wide" : "") + '" data-i="' + i + '" data-task-id="' + t.id + '">' +
         '<button type="button" class="hm-tile' + (isOpen ? " is-open" : "") + '" id="task-' + t.id + '" data-task="' + t.id + '" aria-expanded="' + isOpen + '" aria-controls="panel-' + t.id + '">' +
         '<span class="hm-tile-icon">' + ico(t.icon) + "</span>" +
         '<span class="hm-tile-text"><span class="hm-tile-title">' + esc(t.title) + '</span><span class="hm-tile-line">' + esc(t.line) + "</span>" +
         '<span class="hm-tile-count">' + ls.length + " lessons" + (doneN ? ", " + doneN + " done" : "") + "</span></span>" +
         ico("chevD", "hm-chev") + "</button></h3>" +
-        '<div class="hm-panel" id="panel-' + t.id + '" role="region" aria-labelledby="task-' + t.id + '" style="--acc:' + t.acc + ";--tint:" + t.tint + '"' + (isOpen ? "" : " hidden") + ">" +
+        '<div class="hm-panel" id="panel-' + t.id + '" role="region" aria-labelledby="task-' + t.id + '"' + (isOpen ? "" : " hidden") + ">" +
         '<ul class="hm-rows">' + ls.map(function (l) { return row(l, p); }).join("") + "</ul>" +
         (t.id === "trouble" ? '<details class="hm-status"><summary>What each vessel status means</summary><dl>' +
           STATUS.map(function (s) { return "<dt>" + s[0] + "</dt><dd>" + s[1] + "</dd>"; }).join("") + "</dl></details>" : "") +
