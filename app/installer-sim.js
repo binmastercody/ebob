@@ -2,7 +2,7 @@
  * Practice copy of the .NET 8 Binventory Installer (MainForm.cs / MainForm.Designer.cs).
  * Page numbers, control names, positions, colors and every label and message are taken from that code.
  * Nothing is installed: steps are timed, and the "Host PC", sites and DAT files are sample data.
- *   installer.html?lesson=<id>   mode comes from the lesson (fresh | upgrade | repair)
+ *   installer.html?lesson=<id>   mode comes from the lesson (fresh | upgrade)
  *   installer.html?mode=upgrade  practice without a lesson
  */
 (function () {
@@ -533,7 +533,7 @@
             return go(3);
         }
         if (p === 3) { S.op = "install"; return run(); }
-        if (p === 5) { return closeInstaller(S.op === "remove" ? "The installer closed." : "The installer closed. Binventory Workstation starts on its own after a successful install, upgrade or repair.", null, null, !!lesson); }
+        if (p === 5) { return closeInstaller(S.op === "remove" ? "The installer closed." : "The installer closed. Binventory Workstation starts on its own after a successful install.", null, null, !!lesson); }
         if (p === 6) {
             if (checked("radUpgradeClient") && !S.connected) return msgBox("Please click Connect to verify connectivity before proceeding.", "Connection Test Required", "OK", "warn");
             S.op = "upgrade"; return run();

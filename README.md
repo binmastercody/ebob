@@ -5,7 +5,7 @@ Open `index.html` in a browser. Everything runs from local files (file://), with
 ## Files
 - `index.html`: lesson menu with sections, progress, search and the Setup path
 - `emulator.html`: the Binventory Workstation emulator with the guide layer (`?lesson=<id>`, or `?tutorial=db-read-only` / `pending-unknown-status`)
-- `installer.html?lesson=<id>`: a working copy of the Binventory Installer v5.5 wizard, used by the Server/Host Install, Client Install, project import, Advanced (external SQL Server, add a site), upgrade and repair lessons (`?mode=fresh|upgrade|repair` to try it without a lesson). The upgrade lesson teaches the safe way: back up, choose Remove, restart, then do a normal install. It never uses the installer's Upgrade option
+- `installer.html?lesson=<id>`: a working copy of the Binventory Installer v5.5 wizard, used by the Server/Host Install, Client Install, project import, Advanced (external SQL Server, add a site), upgrade lessons (`?mode=fresh|upgrade` to try it without a lesson). The upgrade lesson teaches the safe way: back up, choose Remove, restart, then do a normal install. It never uses the installer's Upgrade or Repair options. For a damaged install, remove, restart and install again
 - `doc.html?lesson=<id>`: reading lessons (planning and PC requirements, installer troubleshooting)
 - `app/installer-sim.js`, `app/installer-text.js`: the installer copy. Labels, messages and the license text are taken from the installer source.
 - `app/lessons.js`: every lesson (sections, steps, targets, manual references)

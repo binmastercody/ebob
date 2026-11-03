@@ -669,19 +669,6 @@
         ], (function (r) { return r.slice(0, 2).concat([{ title: "Check the readings", msg: "When the installer closes, Binventory Workstation opens. Check that each vessel shows its level, then take a reading to confirm the sensors answer.", target: "#lblDescription", do: "read" }], r.slice(2)); })(I_RUN("<b>Install Finished Successfully.</b> Binventory Workstation starts on its own with your data.")))
     });
 
-    L.push({ id: "repair", source: "Binventory Installer v5.5", section: "admin", page: "installer", installer: { mode: "repair" }, title: "Repairing Binventory",
-        desc: "Restore missing files, settings, services and shortcuts on version 5.4.9.",
-        outro: "Repair keeps your data. If it does not fix the problem, remove Binventory and install it again.",
-        steps: [
-            { title: "Install detected", msg: "The installer found Binventory 5.4.9 on this PC.", target: "#mbBox", do: "read" },
-            { title: "Close the message", msg: "Click <b>OK</b>.", target: "#mbOK", do: "click", until: noDialog },
-            { title: "Repair", msg: "<b>Remove</b> is selected first. Click <b>Repair Existing Installation</b>.", target: "#radServer", do: "click" },
-            { title: "Start the repair", msg: "The button now says <b>Repair</b>. Click it.", target: "#btnNext", do: "click", until: function () { var i = inst(); return !!i && i.page() === 4; } },
-            { title: "Repairing", msg: "The installer restores missing files, configuration, Windows services and shortcuts.", target: "#pnlProgress", do: "wait", until: onPage(5) },
-            { title: "Finished", msg: "<b>Repair completed successfully.</b>", target: "#lblDescription", do: "read" },
-            { title: "Close the installer", msg: "Click <b>Finish</b>.", target: "#btnNext", do: "click", until: closed }
-        ] });
-
     var CF_PANEL = '<div class="eg-replica" role="img" aria-label="Connection Failed window">' +
         '<div class="eg-replica-title">Connection Failed</div>' +
         '<p class="eg-replica-h">&#9888; Connection failed. Let\'s fix that!</p><p>Is your <b>Host PC</b> online?</p>' +
@@ -699,6 +686,7 @@
             { title: "Connection Failed", html: "<p>This window opens when <b>Connect</b> cannot reach the database on the Host PC.</p>" + CF_PANEL + "<p>Also check:</p><ul><li>Both PCs are on the same network.</li><li>The Host PC had a <b>Server/Host Install</b>. Its install adds the firewall rules for TCP 8093, UDP 1434 and the BINVENTORY SQL Server program.</li><li>Another firewall is not blocking those ports.</li></ul>" },
             { title: "Antivirus", html: "<p>Antivirus software can block the installer or quarantine its files. The install then fails or rolls back.</p><ol><li>Check your antivirus history for a blocked Binventory or eBob file.</li><li>Ask IT to allow the installer and the C:\\Program Files (x86)\\eBob folder.</li><li>Run the installer again as an administrator.</li></ol><p>Do not turn antivirus off without IT's approval.</p>" },
             { title: "Restart Required", html: "<p>Removing Binventory needs a restart. The message asks: <i>Would you like to restart now?</i></p><ul><li><b>Yes</b> restarts now. Then run the new installer and do a normal install.</li><li><b>No</b> shows <i>Please restart your computer to complete the uninstall.</i> Restart before you install again.</li></ul><p>To upgrade, remove the old version, restart, then install the new version. Do not use the installer's Upgrade option.</p><p>A new SQL Server install can also ask for a restart before Binventory is used.</p>" },
+            { title: "Missing files or services", html: "<p>If Binventory files, Windows services or shortcuts are missing or damaged, remove Binventory, restart the computer, then do a fresh install. Back up with <b>System Export</b> first. The <a href=\"installer.html?lesson=upgrade\">Upgrading Binventory</a> lesson shows each step.</p><p>Do not use the installer's Repair option.</p>" },
             { title: "SQL Installation Error", html: SQLERR_PANEL + "<p>Check free disk space and that the PC meets the SQL Server 2022 requirements. An old EBOB or BINVENTORY SQL instance can also cause this. Remove the old version first.</p>" },
             { title: "Installation failed", html: "<p><i>Installation failed. All changes have been rolled back.</i> means nothing was left half installed. Fix the cause and run the installer again.</p><p>The installer writes a log to the Windows temp folder, %TEMP%. It is named BinventoryInstaller_ followed by the date and time. If the installer crashes, it writes BinventoryInstaller_Error.log there.</p>" }
         ] });
@@ -845,7 +833,7 @@
         "level-alarms", "email-setup", "contacts", "email-alerts",
         "vessel-details", "groups", "schedules", "temporary-group",
         "inventory-report", "history-report", "site-status-report",
-        "users", "export", "upgrade", "repair",
+        "users", "export", "upgrade",
         "install-site", "install-external-sql",
         "ts-comm-error", "ts-readings-wrong", "ts-no-schedule", "ts-no-email", "ts-pending-unknown", "ts-db-read-only", "ts-installer"];
     L.sort(function (a, b) { return ORDER.indexOf(a.id) - ORDER.indexOf(b.id); });
