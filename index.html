@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="en" class="eg-index">
+<html lang="en" class="eg-index eg-home">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#5b3fa6">
-<title>Binventory Training Guide</title>
+<title>Binventory Workstation 1.0 Training</title>
 <link rel="icon" href="assets/eBob-V5-Application.ico">
 <script>
 /* apply saved text size and contrast before first paint */
@@ -16,200 +16,94 @@
 } catch (e) {} })();
 </script>
 <link rel="stylesheet" href="app/guide.css">
+<link rel="stylesheet" href="app/home.css">
 </head>
 <body>
-<a class="eg-skip" href="#lessons">Skip to the lessons</a>
-<main class="eg-page" id="main">
-  <section class="eg-hero" aria-labelledby="heroTitle">
-    <div class="eg-hero-band">
+<a class="eg-skip" href="#start">Skip to Start here</a>
+<div class="hm-page">
+  <header class="hm-top">
+    <div class="hm-brand">
       <img src="app/binmaster-logo-white.png" alt="BinMaster">
-      <span class="eg-hero-tag">Binventory Workstation 1.0</span>
+      <h1 class="hm-title">Binventory Workstation 1.0 Training</h1>
     </div>
-    <div class="eg-hero-main">
-      <div>
-        <h1 id="heroTitle">Binventory Training Guide</h1>
-        <p class="eg-hero-lead">Step-by-step lessons for setting up and troubleshooting Binventory Workstation.</p>
-        <div class="eg-hero-actions">
-          <a class="eg-cta eg-cta--primary" id="ctaSetup" href="#sec-setup"></a>
-          <a class="eg-cta eg-cta--red" href="#sec-trouble" data-open="trouble"><svg class="eg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.2L4 16.8V20h3.2l5.3-5.3a4 4 0 0 0 5.2-5.4l-2.6 2.6-2.4-.6-.6-2.4z"/></svg>Troubleshooting</a>
-          <a class="eg-cta eg-cta--secondary" href="emulator.html?tutorial=free-mode">Free practice</a>
+    <nav class="hm-top-actions" aria-label="Help and settings">
+      <a class="hm-top-link" href="#task-trouble" id="topFix"><svg class="eg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.2L4 16.8V20h3.2l5.3-5.3a4 4 0 0 0 5.2-5.4l-2.6 2.6-2.4-.6-.6-2.4z"/></svg>Fix a problem</a>
+      <button type="button" class="hm-top-btn" id="displayBtn"><span class="eg-aa" aria-hidden="true">Aa</span>Display settings</button>
+    </nav>
+  </header>
+
+  <main id="main">
+    <section class="hm-card hm-start" id="start" aria-labelledby="startTitle" tabindex="-1">
+      <div class="hm-start-head">
+        <div>
+          <h2 id="startTitle">Start here</h2>
+          <p class="hm-sub">New to Binventory? Do these five lessons in order.</p>
+        </div>
+        <div class="hm-start-go">
+          <p class="hm-progress" id="startProgress"></p>
+          <a class="hm-btn hm-btn--primary" id="hmContinue" href="#"></a>
         </div>
       </div>
-      <figure class="eg-preview" style="margin:0">
-        <img src="app/preview.png" alt="Binventory Workstation main screen with vessel panels showing level, volume and weight">
-        <figcaption>Sample site with 32 vessels</figcaption>
-      </figure>
-    </div>
-    <p class="eg-help">Click the item inside the red circle to continue. Use A&minus; and A+ to change text size.</p>
-  </section>
+      <ol class="hm-steps" id="startSteps"></ol>
+    </section>
 
-  <section class="eg-card" aria-labelledby="lessonsTitle" id="lessons">
-    <div class="eg-card-head">
-      <h2 id="lessonsTitle">Choose a lesson</h2>
-      <div class="eg-overall">
-        <div class="eg-overall-label"><span id="overallText"></span><span id="overallPct"></span></div>
-        <div class="eg-bar" role="progressbar" aria-labelledby="overallText" id="overallBar"><span class="eg-bar-fill"></span></div>
+    <section class="hm-card" id="tasks" aria-labelledby="tasksTitle">
+      <div class="hm-tasks-head">
+        <h2 id="tasksTitle">Find a task</h2>
+        <div class="hm-search" role="search">
+          <svg class="eg-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg>
+          <label for="lessonSearch" class="eg-sr-only">Search lessons by title</label>
+          <input id="lessonSearch" type="search" placeholder="Search lessons" autocomplete="off">
+        </div>
       </div>
-    </div>
-    <div class="eg-search" role="search">
-      <svg class="eg-ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/></svg>
-      <label for="lessonSearch" class="eg-sr-only">Search lessons</label>
-      <input id="lessonSearch" type="search" placeholder="Search lessons" autocomplete="off">
-      <span class="eg-search-key" aria-hidden="true">/</span>
-    </div>
-    <p class="eg-search-count" id="searchCount" role="status" aria-live="polite"></p>
-    <div id="lessonList"></div>
-  </section>
+      <p class="hm-search-count" id="searchCount" role="status" aria-live="polite"></p>
+      <div class="hm-tiles" id="tiles"></div>
+      <div class="hm-results" id="results" hidden></div>
+    </section>
 
-  <footer class="eg-foot">
+    <section class="hm-card hm-adv" id="advanced" aria-labelledby="advTitle">
+      <h2 class="hm-adv-h" id="advTitle"><button type="button" class="hm-disc" id="advBtn" aria-expanded="false" aria-controls="advBody">
+        <span class="hm-disc-text"><span class="hm-disc-title">Advanced (for IT staff)</span><span class="hm-disc-sub">More than one site, or an external SQL Server.</span></span>
+        <svg class="eg-ico hm-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button></h2>
+      <div class="hm-adv-body" id="advBody" hidden></div>
+    </section>
+
+    <section class="hm-ref" id="reference" aria-labelledby="refTitle">
+      <h2 id="refTitle">Reference</h2>
+      <div class="hm-ref-grid">
+        <div>
+          <h3>Requirements</h3>
+          <ul>
+            <li>Windows 11, or Windows Server 2016 to 2025</li>
+            <li>SQL Server 2022 Express or Standard</li>
+          </ul>
+          <p class="hm-ref-links"><a href="doc.html?lesson=plan">Check your PCs</a><a href="https://learn.microsoft.com/en-us/sql/sql-server/install/hardware-and-software-requirements-for-installing-sql-server-2022" target="_blank" rel="noopener">SQL Server 2022 requirements</a></p>
+        </div>
+        <div>
+          <h3>Sensor wiring guides</h3>
+          <p class="hm-ref-links">
+            <a href="https://support.binmaster.com/kb/view/3ae8f673-3dfd-466f-b9fd-2e814996426a" target="_blank" rel="noopener">SmartBob wiring</a>
+            <a href="https://support.binmaster.com/kb/view/9ab4c1b8-9795-4e4a-90a7-192da74a5729" target="_blank" rel="noopener">CNCR wiring</a>
+            <a href="https://support.binmaster.com/kb/view/a5d3b4e0-a336-43f4-94f4-962eeef7d7af" target="_blank" rel="noopener">NCR wiring</a>
+          </p>
+          <p class="hm-ref-note">These open support.binmaster.com in a new tab.</p>
+        </div>
+        <div>
+          <h3>Practice</h3>
+          <p class="hm-ref-links"><a href="emulator.html?tutorial=free-mode" id="freePractice">Practice on your own</a></p>
+          <p class="hm-ref-note">A sample site with 32 vessels.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="hm-foot">
     <button type="button" id="resetProgress">Reset my progress</button>
   </footer>
-</main>
+</div>
 
 <script src="app/display.js"></script>
 <script src="app/lessons.js"></script>
-<script>
-(function () {
-  "use strict";
-  var LS = window.EbobLessons, D = window.EbobDisplay;
-  D.buildToolbar(document.body);
-  var PKEY = "ebob-guide-progress", OPEN_KEY = "ebob-guide-open";
-  function progress() { try { return JSON.parse(localStorage.getItem(PKEY) || "{}") || {}; } catch (e) { return {}; } }
-  function openState() { try { return JSON.parse(localStorage.getItem(OPEN_KEY) || "null"); } catch (e) { return null; } }
-  function saveOpen(o) { try { localStorage.setItem(OPEN_KEY, JSON.stringify(o)); } catch (e) {} }
-  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
-  function href(l) { return l.page === "installer" ? "installer.html?lesson=" + l.id : l.kind === "doc" ? "doc.html?lesson=" + l.id : l.scenario ? "emulator.html?tutorial=" + l.scenario + "&fresh=1" : "emulator.html?tutorial=free-mode&lesson=" + l.id; }
-  var I = {
-    rocket: '<path d="M5 15c-1.5 1.5-2 4-2 6 2 0 4.5-.5 6-2M9 15l-3-3c1-3 3.5-7 9-8.5 1.5-.4 3.5-.5 5.5-.5 0 2-.1 4-.5 5.5C18.5 14 15 16 12 17z"/><circle cx="15" cy="9" r="1.8"/>',
-    bell: '<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15zM10 20.5a2 2 0 0 0 4 0"/>',
-    gauge: '<path d="M4 17a8 8 0 1 1 16 0"/><path d="M12 17l4-5"/><circle cx="12" cy="17" r="1.3"/>',
-    chart: '<path d="M4 20V4M4 20h16"/><rect x="7" y="11" width="3" height="6" rx=".5"/><rect x="12" y="7" width="3" height="10" rx=".5"/><rect x="17" y="13" width="3" height="4" rx=".5"/>',
-    users: '<circle cx="9" cy="8" r="3.2"/><path d="M3 19c0-3.3 2.7-5.5 6-5.5s6 2.2 6 5.5"/><path d="M16 5a3 3 0 0 1 0 6M18 13.7c1.9.7 3 2.7 3 5.3"/>',
-    wrench: '<path d="M14.7 6.3a4 4 0 0 0-5.4 5.2L4 16.8V20h3.2l5.3-5.3a4 4 0 0 0 5.2-5.4l-2.6 2.6-2.4-.6-.6-2.4z"/>',
-    layers: '<path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/>',
-    chev: '<path d="M9 6l6 6-6 6"/>', check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
-    clock: '<circle cx="12" cy="12" r="8"/><path d="M12 8v4l2.5 2"/>', play: '<path d="M8 5.5v13l10-6.5z"/>'
-  };
-  function ico(n, cls) { return '<svg class="eg-ico ' + (cls || "") + '" viewBox="0 0 24 24" aria-hidden="true">' + I[n] + "</svg>"; }
-
-  var STATUS = [
-    ["Unknown", "The sensor has not measured since the PC was rebooted or the Binventory Engine was restarted."],
-    ["Pending", "A measurement was requested and its result is not known yet."],
-    ["Descending", "A SmartBob is measuring and dropping its bob."],
-    ["Retracting", "A SmartBob is measuring and raising its bob."],
-    ["Ready", "The last measurement worked. The sensor is idle and ready."],
-    ["Bob In Override", "The SmartBob ignored the request because its override input is active or open circuit."],
-    ["Communications Error", "Binventory did not get the right reply from the sensor. Usually RS-485 wiring, sometimes setup or hardware."],
-    ["Bob Stuck Top", "The bob did not drop. The vessel may be very full, or the SmartBob has a mechanical fault."],
-    ["Bob Stuck Bottom", "The bob did not fully retract. It may be buried in product, or the SmartBob has a mechanical fault."],
-    ["Database Read Only", "Data shows but measurements cannot start. The Engine service may be stopped, or Site Setup has the wrong host IP."],
-    ["Error", "One or more errors. Hover over the message or open Vessel Details for more."]
-  ];
-  var GROUPS = {};
-  var open = openState() || { setup: true };
-  var list = document.getElementById("lessonList");
-
-  function render(q) {
-    var p = progress(), html = "", shown = 0;
-    q = (q || "").trim().toLowerCase();
-    LS.sections.forEach(function (sec) {
-      var ls = LS.lessons.filter(function (l) { return l.section === sec.id; });
-      var hits = ls.filter(function (l) { return !q || (l.title + " " + l.desc + " " + sec.title).toLowerCase().indexOf(q) >= 0; });
-      if (q && !hits.length) return;
-      shown += hits.length;
-      var done = ls.filter(function (l) { return p[l.id]; }).length;
-      var nextL = ls.filter(function (l) { return !p[l.id]; })[0];
-      var isPath = sec.kind === "path";
-      var isOpen = q ? true : !!open[sec.id];
-      if (GROUPS[sec.id] && !q) html += '<p class="eg-group-label">' + GROUPS[sec.id] + "</p>";
-      html += '<div class="eg-sec' + (isPath ? " eg-sec--path" : "") + (isOpen ? " is-open" : "") + '" id="sec-' + sec.id + '" style="--acc:' + sec.acc + ";--tint:" + sec.tint + '">' +
-        '<h3><button type="button" class="eg-sec-head" aria-expanded="' + isOpen + '" aria-controls="body-' + sec.id + '" data-sec="' + sec.id + '">' +
-        '<span class="eg-sec-icon">' + ico(sec.icon) + "</span>" +
-        '<span class="eg-sec-text"><span class="eg-sec-title">' + (isPath ? "1. " : "") + esc(sec.title) + '</span><span class="eg-sec-blurb">' + esc(sec.blurb) + "</span></span>" +
-        '<span class="eg-sec-count">' + done + " of " + ls.length + " done</span>" + ico("chev", "eg-sec-chev") + "</button></h3>" +
-        '<div class="eg-sec-body" id="body-' + sec.id + '"' + (isOpen ? "" : " hidden") + ">";
-      if (isPath && !q) {
-        var pct = Math.round(done / ls.length * 100);
-        html += '<div class="eg-path-bar"><div class="eg-path-progress"><span class="eg-path-label">' +
-          (done === ls.length ? "Setup complete" : "Step " + (done + 1) + " of " + ls.length + (nextL ? ": " + esc(nextL.title) : "")) +
-          '</span><span class="eg-bar" role="progressbar" aria-label="Setup progress" aria-valuemin="0" aria-valuemax="' + ls.length + '" aria-valuenow="' + done + '"><span class="eg-bar-fill" style="width:' + pct + '%"></span></span></div>' +
-          '<a class="eg-cta eg-cta--primary" href="' + href(nextL || ls[0]) + '">' + ico("play") + (done === 0 ? "Start setup" : (done === ls.length ? "Review setup" : "Continue setup")) + "</a></div>";
-      }
-      html += '<ol class="eg-llist' + (isPath ? " eg-llist--path" : "") + '">';
-      hits.forEach(function (l) {
-        var n = ls.indexOf(l) + 1, isDone = !!p[l.id], isNext = isPath && nextL === l;
-        html += '<li class="eg-lli"><a class="eg-lrow' + (isDone ? " is-done" : "") + (isNext ? " is-next" : "") + '" href="' + href(l) + '" aria-label="' +
-          esc((isPath ? "Step " + n + ": " : "") + l.title + ". " + l.desc + " " + l.stepCount + " steps, about " + l.minutes + " minutes." + (isDone ? " Done." : "") + (isNext ? " Next up." : "")) + '">' +
-          '<span class="eg-lmark" aria-hidden="true">' + (isDone ? ico("check") : (isPath ? n : "")) + "</span>" +
-          '<span class="eg-ltext"><span class="eg-ltitle">' + esc(l.title) + '</span><span class="eg-ldesc">' + esc(l.desc) + "</span>" +
-          "</span>" +
-          '<span class="eg-lside" aria-hidden="true">' + (isNext ? '<span class="eg-ltag">Next</span>' : "") +
-          (isDone ? '<span class="eg-ldone">' + ico("check") + "Done</span>" : "") +
-          '<span class="eg-lmeta">' + ico("clock") + l.stepCount + " steps, about " + l.minutes + " min</span></span>" +
-          ico("chev", "eg-lgo") + "</a></li>";
-      });
-      html += "</ol>";
-      if (sec.id === "trouble" && !q) {
-        html += '<details class="eg-ref"><summary>What each vessel status means</summary><dl>' +
-          STATUS.map(function (s) { return "<dt>" + s[0] + "</dt><dd>" + s[1] + "</dd>"; }).join("") +
-          '</dl><p style="margin:0;padding:0 1rem 1rem;font-size:.85rem;color:#4b5563">From manual section 5.2.</p></details>';
-        html += '<details class="eg-ref"><summary>Sensor wiring guides on support.binmaster.com</summary>' +
-          '<p style="margin:0;padding:0 1rem;font-size:.95rem">Most Communications Errors come from RS-485 wiring. These BinMaster support articles open in a new tab.</p>' +
-          '<div class="eg-ref-links" style="padding:0 1rem 1rem">' +
-          '<a href="https://support.binmaster.com/kb/view/3ae8f673-3dfd-466f-b9fd-2e814996426a" target="_blank" rel="noopener">SmartBob wiring</a>' +
-          '<a href="https://support.binmaster.com/kb/view/9ab4c1b8-9795-4e4a-90a7-192da74a5729" target="_blank" rel="noopener">CNCR wiring</a>' +
-          '<a href="https://support.binmaster.com/kb/view/a5d3b4e0-a336-43f4-94f4-962eeef7d7af" target="_blank" rel="noopener">NCR wiring</a></div></details>';
-      }
-      html += "</div></div>";
-    });
-    if (q && !shown) html = '<div class="eg-empty"><p><b>No lessons match "' + esc(q) + '".</b></p><p>Try vessel, alarm, email, report or user.</p></div>';
-    list.innerHTML = html;
-    document.getElementById("searchCount").textContent = q ? shown + (shown === 1 ? " lesson matches" : " lessons match") : "";
-
-    var total = LS.lessons.length, d = LS.lessons.filter(function (l) { return p[l.id]; }).length;
-    document.getElementById("overallText").textContent = d + " of " + total + " lessons done";
-    document.getElementById("overallPct").textContent = Math.round(d / total * 100) + "%";
-    var ob = document.getElementById("overallBar");
-    ob.setAttribute("aria-valuemin", "0"); ob.setAttribute("aria-valuemax", String(total)); ob.setAttribute("aria-valuenow", String(d));
-    ob.firstElementChild.style.width = (d / total * 100) + "%";
-
-    var setupL = LS.lessons.filter(function (l) { return l.section === "setup"; });
-    var nx = setupL.filter(function (l) { return !p[l.id]; })[0];
-    var cta = document.getElementById("ctaSetup");
-    cta.href = href(nx || setupL[0]);
-    cta.innerHTML = ico("play") + (nx ? (nx === setupL[0] ? "Start setup" : "Continue setup") : "Review setup");
-  }
-
-  list.addEventListener("click", function (e) {
-    var b = e.target.closest(".eg-sec-head"); if (!b) return;
-    var id = b.getAttribute("data-sec"), body = document.getElementById("body-" + id), sec = b.closest(".eg-sec");
-    var now = body.hidden;
-    body.hidden = !now; b.setAttribute("aria-expanded", String(now)); sec.classList.toggle("is-open", now);
-    open[id] = now; saveOpen(open);
-  });
-  document.querySelectorAll("[data-open]").forEach(function (a) {
-    a.addEventListener("click", function () {
-      var id = a.getAttribute("data-open"); open[id] = true; saveOpen(open);
-      var s = document.getElementById("lessonSearch"); if (s.value) { s.value = ""; }
-      render("");
-      setTimeout(function () { var h = document.querySelector('#sec-' + id + ' .eg-sec-head'); if (h) h.focus(); }, 0);
-    });
-  });
-  var search = document.getElementById("lessonSearch");
-  search.addEventListener("input", function () { render(search.value); });
-  document.addEventListener("keydown", function (e) {
-    if (e.key === "/" && document.activeElement !== search && !/input|textarea|select/i.test(document.activeElement.tagName)) { e.preventDefault(); search.focus(); }
-    if (e.key === "Escape" && document.activeElement === search && search.value) { search.value = ""; render(""); }
-  });
-  document.getElementById("resetProgress").addEventListener("click", function () {
-    if (!confirm("Clear the done marks on every lesson?")) return;
-    try { localStorage.removeItem(PKEY); } catch (e) {}
-    render(search.value);
-  });
-  window.addEventListener("storage", function (e) { if (e.key === PKEY) render(search.value); });
-  window.addEventListener("pageshow", function () { render(search.value); });
-  render("");
-})();
-</script>
+<script src="app/home.js"></script>
 </body>
 </html>

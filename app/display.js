@@ -93,10 +93,11 @@
         if (live) live.textContent = "Text size " + SIZES[cur.size].label + ", " + SIZES[cur.size].pct + " percent";
     }
     function refreshUi() {
-        if (!bar) return;
-        bar.querySelector("[data-eg-size=down]").disabled = cur.size === 0;
-        bar.querySelector("[data-eg-size=up]").disabled = cur.size === SIZES.length - 1;
-        bar.querySelector(".eg-size-val").textContent = SIZES[cur.size].pct + "%";
+        if (bar) {
+            bar.querySelector("[data-eg-size=down]").disabled = cur.size === 0;
+            bar.querySelector("[data-eg-size=up]").disabled = cur.size === SIZES.length - 1;
+            bar.querySelector(".eg-size-val").textContent = SIZES[cur.size].pct + "%";
+        }
         if (panel) {
             panel.querySelectorAll("input[name=eg-size]").forEach(function (r) { r.checked = +r.value === cur.size; });
             panel.querySelectorAll("input[name=eg-pace]").forEach(function (r) { r.checked = r.value === cur.pace; });
@@ -120,17 +121,26 @@
             '<button type="button" class="eg-tb-btn eg-tb-display" aria-expanded="false" aria-controls="egDisplayPanel"><span class="eg-aa" aria-hidden="true">Aa</span> Display</button>';
         live = h("div", { "class": "eg-sr-only", role: "status", "aria-live": "polite" });
         bar.appendChild(live);
-        btn = bar.querySelector(".eg-tb-display");
         bar.querySelector("[data-eg-size=down]").addEventListener("click", api.smaller);
         bar.querySelector("[data-eg-size=up]").addEventListener("click", api.bigger);
         bar.querySelector("[data-eg-size=reset]").addEventListener("click", api.resetSize);
-
+        attachPanel(bar.querySelector(".eg-tb-display"));
+        (host || document.body).appendChild(bar);
+        refreshUi();
+        return bar;
+    }
+    /* the Display settings panel, opened by one button (the toolbar's Display button, or the home page header button) */
+    function attachPanel(button, opts) {
+        opts = opts || {};
+        btn = button;
+        btn.setAttribute("aria-expanded", "false"); btn.setAttribute("aria-controls", "egDisplayPanel");
+        if (!live) { live = h("div", { "class": "eg-sr-only", role: "status", "aria-live": "polite" }); document.body.appendChild(live); }
         panel = h("div", { "class": "eg-ui eg-panel", id: "egDisplayPanel", role: "dialog", "aria-label": "Display settings", hidden: "" });
         var sizes = SIZES.map(function (s, i) {
             return '<label class="eg-opt"><input type="radio" name="eg-size" value="' + i + '"> ' + s.label + ' <span class="eg-opt-sub">' + s.pct + "%</span></label>";
         }).join("");
         panel.innerHTML =
-            '<div class="eg-panel-head"><h2 class="eg-panel-title">Display</h2><button type="button" class="eg-panel-close">Close</button></div>' +
+            '<div class="eg-panel-head"><h2 class="eg-panel-title">' + (opts.title || "Display") + '</h2><button type="button" class="eg-panel-close">Close</button></div>' +
             '<fieldset class="eg-group"><legend>Text size</legend><div class="eg-opts">' + sizes + "</div></fieldset>" +
             '<fieldset class="eg-group"><legend>Lesson pace</legend><div class="eg-opts eg-opts--col">' +
             '<label class="eg-opt"><input type="radio" name="eg-pace" value="normal"> Normal <span class="eg-opt-sub">moves on by itself after each step</span></label>' +
@@ -154,17 +164,18 @@
         btn.addEventListener("click", function () {
             var open = panel.hidden;
             panel.hidden = !open; btn.setAttribute("aria-expanded", String(open));
+            if (open && opts.place) opts.place(panel, btn);
             if (open) { refreshUi(); var f = panel.querySelector("input:checked") || panel.querySelector("input"); if (f) f.focus(); }
         });
         document.addEventListener("keydown", function (e) { if (e.key === "Escape" && panel && !panel.hidden) { e.stopPropagation(); closePanel(true); } }, true);
         document.addEventListener("pointerdown", function (e) {
             if (panel && !panel.hidden && !panel.contains(e.target) && !btn.contains(e.target)) closePanel(false);
         }, true);
-        (host || document.body).appendChild(bar);
         document.body.appendChild(panel);
         refreshUi();
-        return bar;
+        return panel;
     }
     api.buildToolbar = buildToolbar;
+    api.attachPanel = attachPanel;
     api.onChange(refreshUi);
 })();

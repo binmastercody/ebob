@@ -107,7 +107,7 @@
     var L = [];
 
     /* ======================= SETUP ======================= */
-    L.push({ id: "tour", section: "setup", title: "First launch: tour the Workstation", manual: "5, 5.1, 5.2",
+    L.push({ id: "tour", section: "setup", title: "First launch: a quick tour", manual: "5, 5.1, 5.2",
         desc: "The menu bar, vessel panels, status and pages.",
         outro: "You know where the menus are, what a vessel panel shows and how to switch pages.",
         steps: [
@@ -129,7 +129,7 @@
               target: pageTab(1), do: "click", until: function () { return tabActive(1); } }
         ] });
 
-    L.push({ id: "system-setup", section: "setup", title: "System Setup", manual: "5.4.1",
+    L.push({ id: "system-setup", section: "setup", title: "Choose system settings", manual: "5.4.1",
         desc: "Registered user, how long readings are kept and the login rule.",
         outro: "System Setup holds the registered user, how many days of readings are kept and whether users must log in.",
         steps: flat([
@@ -143,7 +143,7 @@
             ]
         ]) });
 
-    L.push({ id: "site-setup", section: "setup", title: "Site Setup", manual: "5.4.2",
+    L.push({ id: "site-setup", section: "setup", title: "Name your site", manual: "5.4.2",
         desc: "Name the site, check distance units and the Engine host.",
         outro: "The site now has a clear name. Distance units and the Engine host address are set in Site Setup.",
         steps: flat([
@@ -159,7 +159,7 @@
             ]
         ]) });
 
-    L.push({ id: "sensor-network", section: "setup", title: "Adding a sensor network", manual: "5.4.5",
+    L.push({ id: "sensor-network", section: "setup", title: "Add a sensor network", manual: "5.4.5",
         desc: "Add a network, pick its protocol and port, then save.",
         outro: "You added a sensor network. Every vessel on it will use the protocol and port you set here.",
         steps: flat([
@@ -183,7 +183,7 @@
             ]
         ]) });
 
-    L.push({ id: "add-vessel", section: "setup", title: "Adding a vessel", manual: "5.4.6, 5.4.7",
+    L.push({ id: "add-vessel", section: "setup", title: "Add a vessel", manual: "5.4.6, 5.4.7",
         desc: "Name, shape, contents and sensor for a new vessel.",
         outro: "Your vessel has a name, a shape, its contents and a sensor. It now shows as a panel on the main screen.",
         steps: flat([
@@ -232,7 +232,7 @@
         { title: "Close Vessel Maintenance", msg: "Click <b>Close</b>.", target: "#vmBtnClose", do: "click", until: function () { return !win("Vessel Maintenance"); } }
     ];
 
-    L.push({ id: "level-alarms", section: "alerts", title: "Setting level alarms", manual: "5.4.7.5",
+    L.push({ id: "level-alarms", section: "alerts", title: "Set a level alarm", manual: "5.4.7.5",
         desc: "Turn on pre-high and pre-low warnings for a vessel.",
         outro: "When a reading passes an enabled alarm level, the vessel shows a blinking red alarm on the main screen.",
         steps: flat([
@@ -248,7 +248,7 @@
             saveAndCloseVessel
         ]) });
 
-    L.push({ id: "email-setup", section: "alerts", title: "Email Setup", manual: "5.4.3",
+    L.push({ id: "email-setup", section: "alerts", title: "Connect your email server", manual: "5.4.3",
         desc: "Point Binventory at your SMTP mail server.",
         outro: "Binventory can now send email. Your IT department or internet provider supplies the server name and any login.",
         steps: flat([
@@ -263,7 +263,7 @@
             ]
         ]) });
 
-    L.push({ id: "contacts", section: "alerts", title: "Adding an email contact", manual: "5.4.4",
+    L.push({ id: "contacts", section: "alerts", title: "Add an email contact", manual: "5.4.4",
         desc: "Add a person who can receive alarm and report emails.",
         outro: "Contacts only get email after you assign them to a vessel's notifications or to a Site Status Report.",
         steps: flat([
@@ -278,7 +278,7 @@
             ]
         ]) });
 
-    L.push({ id: "email-alerts", section: "alerts", title: "Email alerts for a vessel", manual: "5.4.7.6",
+    L.push({ id: "email-alerts", section: "alerts", title: "Email someone when a vessel alarms", manual: "5.4.7.6",
         desc: "Choose who gets emailed when a vessel alarms.",
         outro: "Jane Operator will now get an email when Cem Silo 1 reaches a high or low alarm level.",
         steps: flat([
@@ -298,7 +298,7 @@
         ]) });
 
     /* ======================= READINGS ======================= */
-    L.push({ id: "measure", section: "setup", title: "Confirm a reading", manual: "5.2",
+    L.push({ id: "measure", section: "setup", title: "Take a reading", manual: "5.2",
         desc: "Measure one vessel and follow its status.",
         outro: "A SmartBob reading goes Descending, then Retracting, and the panel updates with the new level.",
         steps: [
@@ -315,7 +315,7 @@
             { title: "Measure All Vessels", msg: "This is <b>Measure All Vessels</b>. Click it to start a reading on every vessel.", target: "#menuItemMeasureAll", do: "click" }
         ] });
 
-    L.push({ id: "vessel-details", section: "readings", title: "Viewing vessel details", manual: "5.3",
+    L.push({ id: "vessel-details", section: "readings", title: "See a vessel's details", manual: "5.3",
         desc: "Open the details screen for a vessel and its sensor.",
         outro: "Vessel Details shows contents, level, alarm settings, next measurement time and sensor information.",
         steps: [
@@ -326,7 +326,7 @@
             { title: "Close", msg: "Click <b>Close</b>.", target: closeBtn("backdropApp"), do: "click", until: function () { return !win("Vessel Details"); } }
         ] });
 
-    L.push({ id: "groups", section: "readings", title: "Creating a vessel group", manual: "5.4.8",
+    L.push({ id: "groups", section: "readings", title: "Group vessels together", manual: "5.4.8",
         desc: "Group vessels so they can be measured on a schedule.",
         outro: "Groups exist to organize vessels for measurement schedules. Next, attach a group to a schedule.",
         steps: flat([
@@ -345,7 +345,7 @@
             ]
         ]) });
 
-    L.push({ id: "schedules", section: "readings", title: "Creating a measurement schedule", manual: "5.4.9",
+    L.push({ id: "schedules", section: "readings", title: "Measure on a schedule", manual: "5.4.9",
         desc: "Measure a group every hour on weekdays.",
         outro: "The schedule is active as soon as it is saved. Uncheck Schedule Active later to pause it.",
         steps: flat([
@@ -367,7 +367,7 @@
             ]
         ]) });
 
-    L.push({ id: "temporary-group", section: "readings", title: "Showing only some vessels", manual: "5.4.12",
+    L.push({ id: "temporary-group", section: "readings", title: "Show only some vessels", manual: "5.4.12",
         desc: "Use Temporary Group Setup to hide vessels for now.",
         outro: "Temporary groups last until you log out or exit. Use >> to show every vessel again.",
         steps: flat([
@@ -393,7 +393,7 @@
             ]
         ]);
     }
-    L.push({ id: "inventory-report", section: "reports", title: "Inventory Report", manual: "5.4.13.2",
+    L.push({ id: "inventory-report", section: "reports", title: "Print an inventory report", manual: "5.4.13.2",
         desc: "A table of every vessel's level.",
         outro: "In the full product the report opens in Crystal Reports, where it can be printed or saved as a PDF.",
         steps: flat([
@@ -408,7 +408,7 @@
             ]
         ]) });
 
-    L.push({ id: "history-report", section: "reports", title: "Inventory History Report", manual: "5.4.13.3",
+    L.push({ id: "history-report", section: "reports", title: "See a vessel's level history", manual: "5.4.13.3",
         desc: "Chart one vessel's level over its recent readings.",
         outro: "History charts can use the last 30 or 60 readings or a date range, for product or headroom.",
         steps: flat([
@@ -422,7 +422,7 @@
             ]
         ]) });
 
-    L.push({ id: "site-status-report", section: "reports", title: "Emailed Site Status Report", manual: "5.4.14",
+    L.push({ id: "site-status-report", section: "reports", title: "Email a site status report", manual: "5.4.14",
         desc: "Schedule an email of the latest readings for every vessel at a site.",
         outro: "Site Status Reports are scheduled like measurements, but you assign contacts to email instead of vessels to measure.",
         steps: flat([
@@ -446,7 +446,7 @@
         ]) });
 
     /* ======================= USERS AND BACKUP ======================= */
-    L.push({ id: "users", section: "admin", title: "Adding a user", manual: "5.4.10",
+    L.push({ id: "users", section: "admin", title: "Add a user", manual: "5.4.10",
         desc: "Create a login and pick the right access level.",
         outro: "Users only need to log in once System Setup no longer has Do NOT require users to login checked.",
         steps: flat([
@@ -464,7 +464,7 @@
             ]
         ]) });
 
-    L.push({ id: "export", section: "admin", title: "Backing up with System Export", manual: "5.4.15",
+    L.push({ id: "export", section: "admin", title: "Back up your system", manual: "5.4.15",
         desc: "Save your whole configuration to a DAT file.",
         outro: "Export again after any configuration change, such as adding a vessel. Only administrators can export or import.",
         steps: flat([
@@ -477,11 +477,11 @@
         ]) });
 
     /* ======================= TROUBLESHOOTING (built-in scenarios) ======================= */
-    L.push({ id: "ts-db-read-only", section: "trouble", title: "Status: Database Read Only", manual: "5.2, 9.2",
-        desc: "Vessels show but cannot be measured. Find the server IP address and set it as the Host IP Address in Site Setup.",
+    L.push({ id: "ts-db-read-only", section: "trouble", title: "A vessel shows Database Read Only", manual: "5.2, 9.2",
+        desc: "Vessels show but cannot be measured. Fix the Host IP.",
         scenario: "db-read-only", stepCount: 20, minutes: 6 });
-    L.push({ id: "ts-pending-unknown", section: "trouble", title: "Status: Pending or Unknown", manual: "5.2",
-        desc: "Readings never finish. Restart the Engine and Scheduler services, then measure again.",
+    L.push({ id: "ts-pending-unknown", section: "trouble", title: "A vessel is stuck on Pending or Unknown", manual: "5.2",
+        desc: "Readings never finish. Restart the services.",
         scenario: "pending-unknown-status", stepCount: 23, minutes: 5 });
 
 
@@ -536,7 +536,7 @@
     }
 
     L.push({ id: "plan", source: "Binventory Workstation 1.0 Operator's Manual and Installer", section: "setup", kind: "doc", title: "Before you install", manual: "2, 3, 4",
-        desc: "The parts of Binventory, what each PC needs and which install type to pick.",
+        desc: "What each PC needs and which install to pick.",
         outro: "Install the Host PC first, then each Client PC.",
         doc: [
             { title: "Binventory has three parts", html: "<ol><li><b>Workstation Client.</b> The program you use to see vessels, set things up and run reports.</li><li><b>eBob Services.</b> The Engine and Scheduler services. They talk to the sensors, run schedules and send email alerts. Each site needs one PC running them.</li><li><b>SQL Server.</b> The database, SQL Server 2022 Express, instance name BINVENTORY. One system has one database.</li></ol>" },
@@ -547,8 +547,8 @@
             { title: "Networked systems", html: "<p>Install the Host PC first and leave it on. Write down its IPv4 address. Every other PC needs it when you click <b>Connect</b>.</p><p>The installer adds these Windows Firewall rules on the Host PC:</p><ul><li><b>eBob Engine (TCP-8093)</b>: TCP port 8093</li><li><b>SQL Server (BINVENTORY)</b>: the SQL Server program, sqlservr.exe</li><li><b>SQL Server Browser (UDP-1434)</b>: UDP port 1434</li></ul><p>If a firewall other than Windows Firewall is in use, open the same ports in it.</p>" }
         ] });
 
-    L.push({ id: "install", source: "Binventory Workstation 1.0 Installer", section: "setup", page: "installer", installer: { mode: "fresh" }, title: "Server/Host Install", manual: "4.3",
-        desc: "The main PC. Installs the Workstation Client, eBob Services and the SQL Server database.",
+    L.push({ id: "install", source: "Binventory Workstation 1.0 Installer", section: "setup", page: "installer", installer: { mode: "fresh" }, title: "Install on the main PC (Server/Host)", manual: "4.3",
+        desc: "The main PC that holds the database. Do this first.",
         outro: "This PC is the Host PC. Other PCs connect to it with Client Install. Next, tour the Workstation and set up the system.",
         steps: [
             { title: "Binventory Installer", msg: "Run the installer as an administrator. The first page asks for the installation type.", target: "#grpInstallType", do: "read" },
@@ -565,8 +565,8 @@
             { title: "Install", msg: "Click <b>Install</b>.", target: "#btnNext", do: "click", until: onPage(4) }
         ], I_RUN()) });
 
-    L.push({ id: "install-import", source: "Binventory Workstation 1.0 Installer", section: "setup", page: "installer", installer: { mode: "fresh" }, title: "Server/Host Install with a project file", manual: "4.3, 7",
-        desc: "Optional. Load a project DAT file from another system during a Server/Host Install.",
+    L.push({ id: "install-import", source: "Binventory Workstation 1.0 Installer", section: "setup", page: "installer", installer: { mode: "fresh" }, title: "Install on the main PC with a project file", manual: "4.3, 7",
+        desc: "Optional. Bring in a project file from another system.",
         outro: "The project is imported into the new database during the install.",
         steps: [
             { title: "Server/Host Install", msg: "Importing needs SQL Server on this PC. Click <b>Server/Host Install</b>.", target: "#radServer", do: "click" },
@@ -582,8 +582,8 @@
             { title: "Install", msg: "Click <b>Install</b>.", target: "#btnNext", do: "click", until: onPage(4) }
         ], I_RUN()) });
 
-    L.push({ id: "network-install", source: "Binventory Workstation 1.0 Installer", section: "setup", page: "installer", installer: { mode: "fresh" }, title: "Client Install", manual: "4.4",
-        desc: "A workstation PC. Connects to the Host PC's database by IP address.",
+    L.push({ id: "network-install", source: "Binventory Workstation 1.0 Installer", section: "setup", page: "installer", installer: { mode: "fresh" }, title: "Install on another PC (Client)", manual: "4.4",
+        desc: "A second PC that connects to the main PC.",
         outro: "This PC uses the Host PC's database. Repeat Client Install on each workstation PC.",
         steps: [
             { title: "Install the Host PC first", msg: "Do a <b>Server/Host Install</b> on the Host PC first and leave it on. Then run the installer on each other PC.", target: "#grpInstallType", do: "read" },
@@ -596,8 +596,8 @@
             { title: "Install", msg: "Click <b>Install</b>.", target: "#btnNext", do: "click", until: onPage(4) }
         ], I_RUN()) });
 
-    L.push({ id: "install-site", source: "Binventory Workstation 1.0 Installer", section: "advanced", page: "installer", installer: { mode: "fresh" }, title: "Advanced: add a site", manual: "4.4",
-        desc: "More than one site. Install eBob Services on a PC at the new site and assign it to that site.",
+    L.push({ id: "install-site", source: "Binventory Workstation 1.0 Installer", section: "advanced", page: "installer", installer: { mode: "fresh" }, title: "Add a site", manual: "4.4",
+        desc: "Put eBob Services on a PC at a second site.",
         outro: "Each site needs one PC with eBob Services assigned to it. All sites share the Host PC's database.",
         steps: [
             { title: "Advanced", msg: "Click <b>Advanced</b>.", target: "#radCustom", do: "click", until: function () { return visible("#chkEngineScheduler"); } },
@@ -614,8 +614,8 @@
             { title: "Install", msg: "Click <b>Install</b>.", target: "#btnNext", do: "click", until: onPage(4) }
         ], I_RUN()) });
 
-    L.push({ id: "install-external-sql", source: "Binventory Workstation 1.0 Installer", section: "advanced", page: "installer", installer: { mode: "fresh" }, title: "Advanced: use an external SQL Server", manual: "4.4",
-        desc: "Point this PC to a SQL Server database that is not on a Binventory Host PC.",
+    L.push({ id: "install-external-sql", source: "Binventory Workstation 1.0 Installer", section: "advanced", page: "installer", installer: { mode: "fresh" }, title: "Use an external SQL Server", manual: "4.4",
+        desc: "Use a SQL Server database on a separate server.",
         outro: "This PC uses the database on the external SQL Server. Other PCs connect to the same address.",
         steps: [
             { title: "Before you start", msg: "The external SQL Server must already have the <b>eBob</b> database and its <b>eBob</b> SQL login. Ask IT for the server's IPv4 address.", target: "#grpInstallType", do: "read" },
@@ -640,11 +640,11 @@
     /* Upgrading: remove the old version, restart, then install the new version. The installer's Upgrade option is not used. */
     function removedDesk() { var i = inst(); return !!i && i.state.removed && !i.state.rebooting && !i.open(); }
     function freshOpen() { var i = inst(); return !!i && i.open() && !i.state.existing && i.page() === 0 && !i.dialog(); }
-    L.push({ id: "upgrade", source: "Binventory Workstation 1.0 Installer", section: "admin", page: "installer", installer: { mode: "upgrade", afterRemove: "fresh" }, title: "Upgrading Binventory", manual: "7, 8, 9",
-        desc: "Back up, remove the old version, restart, then install the new version.",
+    L.push({ id: "upgrade", source: "Binventory Workstation 1.0 Installer", section: "admin", page: "installer", installer: { mode: "upgrade", afterRemove: "fresh" }, title: "Upgrade Binventory", manual: "7, 8, 9",
+        desc: "Back up, remove the old version, restart, then install.",
         outro: "Open Binventory Workstation and check that each vessel takes a new reading. On a networked system, do the Host PC first, then remove and reinstall each Client PC with Client Install.",
         steps: [
-            { title: "Back up first", msg: "Before you start, make a backup in Binventory Workstation: <b>File</b>, then <b>System Export</b>. Keep the DAT file. The lesson <a href=\"emulator.html?tutorial=free-mode&amp;lesson=export\" target=\"_blank\" rel=\"noopener\">Backing up with System Export</a> shows how.", target: "#mbBox", do: "read" },
+            { title: "Back up first", msg: "Before you start, make a backup in Binventory Workstation: <b>File</b>, then <b>System Export</b>. Keep the DAT file. The lesson <a href=\"emulator.html?tutorial=free-mode&amp;lesson=export\" target=\"_blank\" rel=\"noopener\">Back up your system</a> shows how.", target: "#mbBox", do: "read" },
             { title: "Install detected", msg: "Run the new installer. It found an older version of Binventory on this PC.", target: "#mbBox", do: "read" },
             { title: "Close the message", msg: "Click <b>OK</b>.", target: "#mbOK", do: "click", until: noDialog },
             { title: "Use Remove, not Upgrade", msg: "Do not use <b>Upgrade Existing Installation</b>. Remove the old version, restart, then install the new one. It is the more reliable way.", target: "#grpInstallType", do: "read" },
@@ -678,21 +678,21 @@
     var SQLERR_PANEL = '<div class="eg-replica" role="img" aria-label="SQL Installation Error message">' +
         '<div class="eg-replica-title">SQL Installation Error</div>' +
         "<p>SQL Install Error:<br>Contact BinMaster @ 402-434-9105</p><p>Possible Issues:<br>- Not enough space<br>- Incompatible Hardware/Software<br>- Remnants of old install causing conflicts<br>- SQL Instance Already installed.<br>- Unknown Conflict</p></div>";
-    L.push({ id: "ts-installer", source: "Binventory Workstation 1.0 Installer", section: "trouble", kind: "doc", title: "Installer problems", manual: "4",
-        desc: "Connection failed, antivirus, restart required and other installer messages.",
+    L.push({ id: "ts-installer", source: "Binventory Workstation 1.0 Installer", section: "trouble", kind: "doc", title: "The installer shows an error", manual: "4",
+        desc: "Connection failed, antivirus, restart and other messages.",
         outro: "If the installer still fails, call BinMaster Technical Support at 402-434-9105. Have the installer log ready.",
         doc: [
             { title: "Administrator Rights Required", html: "<p>The message says: <i>Administrator privileges are required to run this installer. Please right-click the installer and select 'Run as administrator'.</i></p><p>Close it, right-click the installer and choose <b>Run as administrator</b>.</p><p><b>Binventory Installer is already running</b> means a copy is already open. Use that window, or close it and start again.</p>" },
             { title: "Connection Failed", html: "<p>This window opens when <b>Connect</b> cannot reach the database on the Host PC.</p>" + CF_PANEL + "<p>Also check:</p><ul><li>Both PCs are on the same network.</li><li>The Host PC had a <b>Server/Host Install</b>. Its install adds the firewall rules for TCP 8093, UDP 1434 and the BINVENTORY SQL Server program.</li><li>Another firewall is not blocking those ports.</li></ul>" },
             { title: "Antivirus", html: "<p>Antivirus software can block the installer or quarantine its files. The install then fails or rolls back.</p><ol><li>Check your antivirus history for a blocked Binventory or eBob file.</li><li>Ask IT to allow the installer and the C:\\Program Files (x86)\\eBob folder.</li><li>Run the installer again as an administrator.</li></ol><p>Do not turn antivirus off without IT's approval.</p>" },
             { title: "Restart Required", html: "<p>Removing Binventory needs a restart. The message asks: <i>Would you like to restart now?</i></p><ul><li><b>Yes</b> restarts now. Then run the new installer and do a normal install.</li><li><b>No</b> shows <i>Please restart your computer to complete the uninstall.</i> Restart before you install again.</li></ul><p>To upgrade, remove the old version, restart, then install the new version. Do not use the installer's Upgrade option.</p><p>A new SQL Server install can also ask for a restart before Binventory is used.</p>" },
-            { title: "Missing files or services", html: "<p>If Binventory files, Windows services or shortcuts are missing or damaged, remove Binventory, restart the computer, then do a fresh install. Back up with <b>System Export</b> first. The <a href=\"installer.html?lesson=upgrade\">Upgrading Binventory</a> lesson shows each step.</p><p>Do not use the installer's Repair option.</p>" },
+            { title: "Missing files or services", html: "<p>If Binventory files, Windows services or shortcuts are missing or damaged, remove Binventory, restart the computer, then do a fresh install. Back up with <b>System Export</b> first. The <a href=\"installer.html?lesson=upgrade\">Upgrade Binventory</a> lesson shows each step.</p><p>Do not use the installer's Repair option.</p>" },
             { title: "SQL Installation Error", html: SQLERR_PANEL + "<p>Check free disk space and that the PC meets the SQL Server 2022 requirements. An old EBOB or BINVENTORY SQL instance can also cause this. Remove the old version first.</p>" },
             { title: "Installation failed", html: "<p><i>Installation failed. All changes have been rolled back.</i> means nothing was left half installed. Fix the cause and run the installer again.</p><p>The installer writes a log to the Windows temp folder, %TEMP%. It is named BinventoryInstaller_ followed by the date and time. If the installer crashes, it writes BinventoryInstaller_Error.log there.</p>" }
         ] });
 
     /* ======================= SETUP: copy a vessel ======================= */
-    L.push({ id: "more-vessels", section: "setup", title: "Adding similar vessels quickly", manual: "4.3, 5.4.6",
+    L.push({ id: "more-vessels", section: "setup", title: "Add similar vessels quickly", manual: "4.3, 5.4.6",
         desc: "Copy a vessel with Add New Using, then sort the vessel list.",
         outro: "Add New Using copies every setting. Always change at least the name and the sensor address.",
         steps: flat([
@@ -730,8 +730,8 @@
         { title: "Close Vessel Maintenance", msg: "Click <b>Close</b>.", target: "#vmBtnClose", do: "click", until: function () { return !win("Vessel Maintenance"); } }
     ];
 
-    L.push({ id: "ts-comm-error", section: "trouble", title: "Status: Communications Error", manual: "5.2, 5.4.5, 5.4.7.4",
-        desc: "The sensor did not answer. Check the wiring, the network settings and the sensor address.",
+    L.push({ id: "ts-comm-error", section: "trouble", title: "A vessel shows Communications Error", manual: "5.2, 5.4.5, 5.4.7.4",
+        desc: "The sensor did not answer. Check the wiring and settings.",
         outro: "If the wiring, the network settings and the address all check out and the error stays, call BinMaster Technical Support at 402-434-9105.",
         steps: flat([
             [
@@ -761,8 +761,8 @@
             ]
         ]) });
 
-    L.push({ id: "ts-readings-wrong", section: "trouble", title: "Readings look wrong", manual: "5.4.7.2, 5.4.7.3, 5.4.7.4",
-        desc: "Level, volume or weight do not match the vessel. Check its shape, size, density and offset.",
+    L.push({ id: "ts-readings-wrong", section: "trouble", title: "My readings look wrong", manual: "5.4.7.2, 5.4.7.3, 5.4.7.4",
+        desc: "Level, volume or weight do not match the vessel.",
         outro: "Volume comes from the vessel type and dimensions, and weight is the volume times the density. The sensor offset shifts every level reading.",
         steps: flat([
             [
@@ -787,8 +787,8 @@
             ]
         ]) });
 
-    L.push({ id: "ts-no-schedule", section: "trouble", title: "Scheduled readings are not happening", manual: "2, 5.4.8, 5.4.9",
-        desc: "Check that the schedule is active, runs on the right days and has groups assigned.",
+    L.push({ id: "ts-no-schedule", section: "trouble", title: "My scheduled readings are not happening", manual: "2, 5.4.8, 5.4.9",
+        desc: "Check the schedule, its days and its groups.",
         outro: "A schedule only measures vessels in its assigned groups, on its checked days, and only while the site's Scheduler service is running.",
         steps: flat([
             menu("Vessel", '[data-action="schedule-maintenance"]', "Schedule Maintenance", "Scheduler Maintenance"),
@@ -807,7 +807,7 @@
             ]
         ]) });
 
-    L.push({ id: "ts-no-email", section: "trouble", title: "Email alerts are not arriving", manual: "5.4.3, 5.4.7.6",
+    L.push({ id: "ts-no-email", section: "trouble", title: "I am not getting email alerts", manual: "5.4.3, 5.4.7.6",
         desc: "Check the SMTP server in Email Setup and the vessel's email settings.",
         outro: "Binventory needs an SMTP server to send email, and each vessel needs notifications enabled for the right contacts.",
         steps: flat([
