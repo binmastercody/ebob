@@ -15,12 +15,13 @@
     var AFTER_REMOVE = lesson && lesson.installer && lesson.installer.afterRemove;
     var HOST_IP = "192.168.1.20";                       /* the sample Host PC that answers Connect */
     var EXT_SQL_IP = "192.168.1.30";                    /* a sample external SQL Server on its default instance */
-    var EXISTING_AT_START = MODE === "upgrade" ? "5.4.2" : MODE === "repair" ? "5.4.9" : "";
-    var EXISTING = MODE === "upgrade" ? "5.4.2" : MODE === "repair" ? "5.4.9" : "";
+    function verLabel(v) { return v === "1.0" ? "Workstation 1.0" : "Earlier version"; }
+    var EXISTING_AT_START = MODE === "upgrade" ? "earlier" : MODE === "repair" ? "1.0" : "";
+    var EXISTING = MODE === "upgrade" ? "earlier" : MODE === "repair" ? "1.0" : "";
     var SITES = ["Current Location", "North Plant"];
     var DATS = [
-        { file: "eBobExport_20261030_141522.dat", loc: "C:\\Users\\Public\\Documents\\Binventory Backups", date: "Oct 30, 2026", ver: "5.4.9" },
-        { file: "eBobExport_20260612_090311.dat", loc: "C:\\Users\\Operator\\Documents\\Binventory Backups", date: "Jun 12, 2026", ver: "5.4.8" }
+        { file: "eBobExport_20261030_141522.dat", loc: "C:\\Users\\Public\\Documents\\Binventory Backups", date: "Oct 30, 2026", ver: "1.0" },
+        { file: "eBobExport_20260612_090311.dat", loc: "C:\\Users\\Operator\\Documents\\Binventory Backups", date: "Jun 12, 2026", ver: "earlier" }
     ];
     var STEP_MS = 650, SQL_MS = 2200, CONNECT_MS = 2400;
 
@@ -46,7 +47,7 @@
         '<div class="iw" id="instShell" role="dialog" aria-label="Binventory Installer">' +
           '<div class="iw-titlebar"><img src="assets/eBob-V5-Application.ico" alt=""><span id="iwCaption">Binventory Installer</span><span class="iw-x" aria-hidden="true">&#x2715;</span></div>' +
           '<div class="iw-client" id="pnlContent">' +
-            '<div class="iw-lbl" id="lblTitle" style="' + px(25, 20) + '">Binventory Installer v5.5</div>' +
+            '<div class="iw-lbl" id="lblTitle" style="' + px(25, 20) + '">Binventory Workstation 1.0 Installer</div>' +
             '<div class="iw-lbl" id="lblDescription" style="' + px(29, 56, 360) + '"></div>' +
             '<img id="picLogo" src="assets/installer/BinMaster-logo-200x-transparent.png" alt="BinMaster" style="' + px(400, 18, 155, 60) + '">' +
 
@@ -57,7 +58,7 @@
                 radio("radClient", "itype", 20, 58, "Client Install") +
                 radio("radCustom", "itype", 20, 86, "Advanced") +
                 radio("radRepairOption", "itype", 20, 86, "Repair Existing Installation", "display:none;") +
-                '<div id="lblRepairError" style="' + px(40, 111) + 'display:none;">Repair is not available for versions below 5.4.9. Please use Remove instead.</div>' +
+                '<div id="lblRepairError" style="' + px(40, 111) + 'display:none;">Repair is not available for earlier versions. Please use Remove instead.</div>' +
                 '<div class="iw-opts" id="pnlCustomOptions" style="' + px(320, 10, 170, 113) + '">' +
                   check("chkWorkstation", 10, 12, "Workstation Client") + check("chkEngineScheduler", 10, 40, "eBob Services") + check("chkSqlServer", 10, 68, "SQL Server") +
                 "</div>" +
@@ -152,7 +153,7 @@
         return "";
     }
     function isRemoval() { return S.existing && selType() === "client"; }
-    function isRepair() { return S.existing && (selType() === "repair" || (selType() === "server" && EXISTING === "5.4.9")); }
+    function isRepair() { return S.existing && (selType() === "repair" || (selType() === "server" && EXISTING === "1.0")); }
     function isUpgrade() { return S.upgrade; }
     function needsIp() { var t = selType(); return !S.existing && (t === "client" || (t === "custom" && !checked("chkSqlServer"))); }
     function computeParts() {
@@ -266,7 +267,7 @@
             '<div class="dp-client"><div class="dp-h" id="dpTitle">We found more than one project file</div>' +
             '<div class="dp-info">Pick the one you want to import, then click \u201CUse This File\u201D. The newest is already selected.</div>' +
             '<table class="dp-list" id="dpList"><thead><tr><th>File</th><th>Location</th><th>Date</th><th>Version</th></tr></thead><tbody>' +
-            DATS.map(function (f, i) { return '<tr data-i="' + i + '"' + (i === 0 ? ' class="on"' : "") + "><td>" + esc(f.file) + "</td><td>" + esc(f.loc) + "</td><td>" + esc(f.date) + "</td><td>" + esc(f.ver) + "</td></tr>"; }).join("") +
+            DATS.map(function (f, i) { return '<tr data-i="' + i + '"' + (i === 0 ? ' class="on"' : "") + "><td>" + esc(f.file) + "</td><td>" + esc(f.loc) + "</td><td>" + esc(f.date) + "</td><td>" + esc(verLabel(f.ver)) + "</td></tr>"; }).join("") +
             "</tbody></table>" +
             '<div class="dp-foot"><button type="button" class="iw-btn iw-blue" id="dpUse">Use This File</button><button type="button" class="iw-btn iw-white" id="dpCancel">Cancel</button></div></div></div>';
         mount();
@@ -294,7 +295,7 @@
         if (!f) return;
         S.datPath = f.loc + "\\" + f.file; S.datVer = f.ver; S.datValid = true;
         $("txtDatFile").value = S.datPath;
-        $("lblDatStatus").textContent = "Project Validated. Source Version: " + f.ver;
+        $("lblDatStatus").textContent = "Project Validated. Source Version: " + verLabel(f.ver);
         $("lblDatStatus").className = "iw-lbl iw-ok";
         render();
     }
@@ -488,7 +489,7 @@
         var f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
         if (!f) return;
         if (!/\.dat$/i.test(f.name)) return msgBox("Please drop a .dat project file.", "Invalid File", "OK", "warn");
-        useDat({ file: f.name, loc: "C:\\Users\\Operator\\Desktop", date: "", ver: "5.4.9" });
+        useDat({ file: f.name, loc: "C:\\Users\\Operator\\Desktop", date: "", ver: "1.0" });
     });
 
     $("btnCancel").addEventListener("click", function () {
@@ -509,7 +510,7 @@
         if (p === 0) {
             computeParts();
             if (S.existing) {
-                if (selType() === "server" && EXISTING !== "5.4.9") { S.upgrade = true; return go(6); }
+                if (selType() === "server" && EXISTING !== "1.0") { S.upgrade = true; return go(6); }
                 if (isRemoval()) { S.op = "remove"; return run(); }
                 if (isRepair()) { S.op = "repair"; return run(); }
             }
@@ -548,10 +549,10 @@
     show("lblConnectionProgress", false); show("btnChangeIP", false);
     $("txtServerIP").value = "192.168.1.100";
     if (S.existing) {
-        setText("radServer", EXISTING === "5.4.9" ? "Repair Existing Installation" : "Upgrade Existing Installation");
+        setText("radServer", EXISTING === "1.0" ? "Repair Existing Installation" : "Upgrade Existing Installation");
         setText("radClient", "Remove Existing Binventory Installation");
         show("radCustom", false);
-        if (EXISTING !== "5.4.9") {
+        if (EXISTING !== "1.0") {
             show("radRepairOption", true); inputOf("radRepairOption").disabled = true; $("radRepairOption").classList.add("iw-off");
             show("lblRepairError", true);
             $("grpInstallType").style.height = (111 + 13 + 15) + "px";
@@ -602,7 +603,7 @@
         /* no guided lesson: nothing else will place the window */
         if (!lesson || !lesson.steps) document.documentElement.classList.add("eg-placed");
         setTimeout(function () { document.documentElement.classList.add("eg-placed"); }, 1500);
-        if (S.existing) msgBox("Binventory install detected.\n\nVersion: " + EXISTING + "\nLocation: C:\\Program Files (x86)\\eBob\n\nPlease review the installation options on the next screen.", "Binventory Install Detected", "OK", "info");
+        if (S.existing) msgBox("Binventory install detected.\n\nVersion: " + verLabel(EXISTING) + "\nLocation: C:\\Program Files (x86)\\eBob\n\nPlease review the installation options on the next screen.", "Binventory Install Detected", "OK", "info");
     }, 250);
 
     window.EbobInstaller = { state: S, page: function () { return S.page; }, open: function () { return !S.closed && !S.rebooting; }, dialog: function () { return !!$("mbLayer").firstChild; } };

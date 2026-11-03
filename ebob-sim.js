@@ -11779,8 +11779,8 @@
             title: "Binventory Workstation",
             icon: "warn",
             message:
-                "Import complete.  The eBob 5 workstation and local services will now restart.\n\n" +
-                "IMPORTANT:  If there are other workstations or services connected or networked to the eBob 5 database then they must also be restarted now.",
+                "Import complete.  The Binventory Workstation and local services will now restart.\n\n" +
+                "IMPORTANT:  If there are other workstations or services connected or networked to the Binventory database then they must also be restarted now.",
             onOk: function () {
                 showUacForImportRestart();
             }
@@ -13926,8 +13926,8 @@
                     "Stack Trace: at Tutorial.MockSensorNetwork..ctor(NetworkRecord rec) in MockSensorNetwork.vb:line 332",
                 user: "SYSTEM",
                 sys: "BobsBO",
-                sysVer: "5.4.9.19851",
-                dllVer: "5.4.9",
+                sysVer: "1.0.19851",
+                dllVer: "1.0",
                 dbVer: "4.38"
             },
             {
@@ -13936,8 +13936,8 @@
                     "Stack Trace: at Tutorial.MockSensorNetwork.PollMeasurement() in MockSensorNetwork.vb:line 118",
                 user: "DemoUser",
                 sys: "BobsBO",
-                sysVer: "5.4.9.19851",
-                dllVer: "5.4.9",
+                sysVer: "1.0.19851",
+                dllVer: "1.0",
                 dbVer: "4.38"
             },
             {
@@ -13945,8 +13945,8 @@
                 stack: "Stack Trace: at Tutorial.MockNetworkClient.Connect() in MockNetworkClient.vb:line 45",
                 user: "SYSTEM",
                 sys: "BobsBO",
-                sysVer: "5.4.9.19851",
-                dllVer: "5.4.9",
+                sysVer: "1.0.19851",
+                dllVer: "1.0",
                 dbVer: "4.38"
             },
             {
@@ -13954,8 +13954,8 @@
                 stack: "Stack Trace: at Tutorial.MockCalibration.Apply() in MockCalibration.vb:line 201",
                 user: "admin",
                 sys: "BobsBO",
-                sysVer: "5.4.9.19851",
-                dllVer: "5.4.9",
+                sysVer: "1.0.19851",
+                dllVer: "1.0",
                 dbVer: "4.38"
             }
         ];
@@ -14989,7 +14989,7 @@
 
             if (cmdBanner) {
                 cmdBanner.textContent = [
-                    "Terminal Shell [Version 5.4.9 build 8117]",
+                    "Terminal Shell [Version 1.0 build 8117]",
                     "Copyright (c) simulation"
                 ].join("\n");
             }
@@ -15566,8 +15566,8 @@
             { id: "das", name: "Device Association Service", description: "Enables pairing between the system and wired or wireless devices.", running: true, startup: "Manual (Trigger Start)", logOn: "Local Service" },
             { id: "dhcp", name: "DHCP Client", description: "Registers and updates IP addresses and DNS records for this computer.", running: true, startup: "Automatic", logOn: "Local Service" },
             { id: "dps", name: "Diagnostic Policy Service", description: "The Diagnostic Policy Service enables problem detection, troubleshooting, and resolution for system components.", running: true, startup: "Automatic", logOn: "Local Service" },
-            { id: "ebob-engine", name: "eBob Engine Service", description: "Engine service for Binventory 5. Manages sensor communications and measurement processing.", running: true, startup: "Automatic", logOn: "Local System" },
-            { id: "ebob-scheduler", name: "eBob Scheduler Service", description: "Scheduler service for Binventory 5. Manages schedules and email delivery.", running: true, startup: "Automatic (Delayed Start)", logOn: "Local System" },
+            { id: "ebob-engine", name: "eBob Engine Service", description: "Engine service for Binventory Workstation 1.0. Manages sensor communications and measurement processing.", running: true, startup: "Automatic", logOn: "Local System" },
+            { id: "ebob-scheduler", name: "eBob Scheduler Service", description: "Scheduler service for Binventory Workstation 1.0. Manages schedules and email delivery.", running: true, startup: "Automatic (Delayed Start)", logOn: "Local System" },
             { id: "embedded", name: "Embedded Mode", description: "Enables embedded mode for specialized devices.", running: false, startup: "Manual", logOn: "Local System" },
             { id: "efs", name: "Encrypting File System (EFS)", description: "Provides the core file encryption technology used to store encrypted files on NTFS file system volumes.", running: true, startup: "Manual (Trigger Start)", logOn: "Local System" },
             { id: "entapp", name: "Enterprise App Management Service", description: "Manages enterprise application policies.", running: false, startup: "Manual", logOn: "Local Service" },

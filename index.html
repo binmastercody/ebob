@@ -23,7 +23,7 @@
   <section class="eg-hero" aria-labelledby="heroTitle">
     <div class="eg-hero-band">
       <img src="app/binmaster-logo-white.png" alt="BinMaster">
-      <span class="eg-hero-tag">Binventory Workstation V5</span>
+      <span class="eg-hero-tag">Binventory Workstation 1.0</span>
     </div>
     <div class="eg-hero-main">
       <div>
@@ -62,7 +62,6 @@
   </section>
 
   <footer class="eg-foot">
-    <span>Based on the Binventory V5.4.9 Operator's Manual (925-0267 Rev M). This practice copy does not connect to a real system. Each lesson starts from the same sample site.</span>
     <button type="button" id="resetProgress">Reset my progress</button>
   </footer>
 </main>
@@ -115,7 +114,7 @@
     q = (q || "").trim().toLowerCase();
     LS.sections.forEach(function (sec) {
       var ls = LS.lessons.filter(function (l) { return l.section === sec.id; });
-      var hits = ls.filter(function (l) { return !q || (l.title + " " + l.desc + " " + sec.title + " " + (l.manual || "") + " " + (l.source || "")).toLowerCase().indexOf(q) >= 0; });
+      var hits = ls.filter(function (l) { return !q || (l.title + " " + l.desc + " " + sec.title).toLowerCase().indexOf(q) >= 0; });
       if (q && !hits.length) return;
       shown += hits.length;
       var done = ls.filter(function (l) { return p[l.id]; }).length;
@@ -143,7 +142,7 @@
           esc((isPath ? "Step " + n + ": " : "") + l.title + ". " + l.desc + " " + l.stepCount + " steps, about " + l.minutes + " minutes." + (isDone ? " Done." : "") + (isNext ? " Next up." : "")) + '">' +
           '<span class="eg-lmark" aria-hidden="true">' + (isDone ? ico("check") : (isPath ? n : "")) + "</span>" +
           '<span class="eg-ltext"><span class="eg-ltitle">' + esc(l.title) + '</span><span class="eg-ldesc">' + esc(l.desc) + "</span>" +
-          (l.manual || l.source ? '<span class="eg-lref">' + (l.source ? esc(l.source) : "Manual " + esc(l.manual)) + (l.scenario ? ". Guided scenario" : l.kind === "doc" ? ". Reading lesson" : ". Hands-on practice") + "</span>" : "") + "</span>" +
+          "</span>" +
           '<span class="eg-lside" aria-hidden="true">' + (isNext ? '<span class="eg-ltag">Next</span>' : "") +
           (isDone ? '<span class="eg-ldone">' + ico("check") + "Done</span>" : "") +
           '<span class="eg-lmeta">' + ico("clock") + l.stepCount + " steps, about " + l.minutes + " min</span></span>" +

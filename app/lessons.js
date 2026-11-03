@@ -1,6 +1,6 @@
 /*
  * eBob Guide lesson catalog. Used by the lesson menu (index.html) and the guide engine (emulator.html).
- * Step content follows the Binventory V5.4.9 Operator's Manual (925-0267 Rev M); section numbers are in `manual`.
+ * Step content follows the Binventory Workstation 1.0 Operator's Manual; section numbers are in `manual`.
  *
  * Step fields
  *   title, msg      text for the coach card (msg may hold <b>)
@@ -535,7 +535,7 @@
         ];
     }
 
-    L.push({ id: "plan", source: "Operator's Manual sections 2 to 4 and the Binventory Installer v5.5", section: "setup", kind: "doc", title: "Before you install", manual: "2, 3, 4",
+    L.push({ id: "plan", source: "Binventory Workstation 1.0 Operator's Manual and Installer", section: "setup", kind: "doc", title: "Before you install", manual: "2, 3, 4",
         desc: "The parts of Binventory, what each PC needs and which install type to pick.",
         outro: "Install the Host PC first, then each Client PC.",
         doc: [
@@ -547,7 +547,7 @@
             { title: "Networked systems", html: "<p>Install the Host PC first and leave it on. Write down its IPv4 address. Every other PC needs it when you click <b>Connect</b>.</p><p>The installer adds these Windows Firewall rules on the Host PC:</p><ul><li><b>eBob Engine (TCP-8093)</b>: TCP port 8093</li><li><b>SQL Server (BINVENTORY)</b>: the SQL Server program, sqlservr.exe</li><li><b>SQL Server Browser (UDP-1434)</b>: UDP port 1434</li></ul><p>If a firewall other than Windows Firewall is in use, open the same ports in it.</p>" }
         ] });
 
-    L.push({ id: "install", source: "Binventory Installer v5.5", section: "setup", page: "installer", installer: { mode: "fresh" }, title: "Server/Host Install", manual: "4.3",
+    L.push({ id: "install", source: "Binventory Workstation 1.0 Installer", section: "setup", page: "installer", installer: { mode: "fresh" }, title: "Server/Host Install", manual: "4.3",
         desc: "The main PC. Installs the Workstation Client, eBob Services and the SQL Server database.",
         outro: "This PC is the Host PC. Other PCs connect to it with Client Install. Next, tour the Workstation and set up the system.",
         steps: [
@@ -565,7 +565,7 @@
             { title: "Install", msg: "Click <b>Install</b>.", target: "#btnNext", do: "click", until: onPage(4) }
         ], I_RUN()) });
 
-    L.push({ id: "install-import", source: "Binventory Installer v5.5", section: "setup", page: "installer", installer: { mode: "fresh" }, title: "Server/Host Install with a project file", manual: "4.3, 7",
+    L.push({ id: "install-import", source: "Binventory Workstation 1.0 Installer", section: "setup", page: "installer", installer: { mode: "fresh" }, title: "Server/Host Install with a project file", manual: "4.3, 7",
         desc: "Optional. Load a project DAT file from another system during a Server/Host Install.",
         outro: "The project is imported into the new database during the install.",
         steps: [
@@ -582,7 +582,7 @@
             { title: "Install", msg: "Click <b>Install</b>.", target: "#btnNext", do: "click", until: onPage(4) }
         ], I_RUN()) });
 
-    L.push({ id: "network-install", source: "Binventory Installer v5.5", section: "setup", page: "installer", installer: { mode: "fresh" }, title: "Client Install", manual: "4.4",
+    L.push({ id: "network-install", source: "Binventory Workstation 1.0 Installer", section: "setup", page: "installer", installer: { mode: "fresh" }, title: "Client Install", manual: "4.4",
         desc: "A workstation PC. Connects to the Host PC's database by IP address.",
         outro: "This PC uses the Host PC's database. Repeat Client Install on each workstation PC.",
         steps: [
@@ -596,7 +596,7 @@
             { title: "Install", msg: "Click <b>Install</b>.", target: "#btnNext", do: "click", until: onPage(4) }
         ], I_RUN()) });
 
-    L.push({ id: "install-site", source: "Binventory Installer v5.5", section: "advanced", page: "installer", installer: { mode: "fresh" }, title: "Advanced: add a site", manual: "4.4",
+    L.push({ id: "install-site", source: "Binventory Workstation 1.0 Installer", section: "advanced", page: "installer", installer: { mode: "fresh" }, title: "Advanced: add a site", manual: "4.4",
         desc: "More than one site. Install eBob Services on a PC at the new site and assign it to that site.",
         outro: "Each site needs one PC with eBob Services assigned to it. All sites share the Host PC's database.",
         steps: [
@@ -614,7 +614,7 @@
             { title: "Install", msg: "Click <b>Install</b>.", target: "#btnNext", do: "click", until: onPage(4) }
         ], I_RUN()) });
 
-    L.push({ id: "install-external-sql", source: "Binventory Installer v5.5", section: "advanced", page: "installer", installer: { mode: "fresh" }, title: "Advanced: use an external SQL Server", manual: "4.4",
+    L.push({ id: "install-external-sql", source: "Binventory Workstation 1.0 Installer", section: "advanced", page: "installer", installer: { mode: "fresh" }, title: "Advanced: use an external SQL Server", manual: "4.4",
         desc: "Point this PC to a SQL Server database that is not on a Binventory Host PC.",
         outro: "This PC uses the database on the external SQL Server. Other PCs connect to the same address.",
         steps: [
@@ -640,12 +640,12 @@
     /* Upgrading: remove the old version, restart, then install the new version. The installer's Upgrade option is not used. */
     function removedDesk() { var i = inst(); return !!i && i.state.removed && !i.state.rebooting && !i.open(); }
     function freshOpen() { var i = inst(); return !!i && i.open() && !i.state.existing && i.page() === 0 && !i.dialog(); }
-    L.push({ id: "upgrade", source: "Binventory Installer v5.5", section: "admin", page: "installer", installer: { mode: "upgrade", afterRemove: "fresh" }, title: "Upgrading Binventory", manual: "7, 8, 9",
+    L.push({ id: "upgrade", source: "Binventory Workstation 1.0 Installer", section: "admin", page: "installer", installer: { mode: "upgrade", afterRemove: "fresh" }, title: "Upgrading Binventory", manual: "7, 8, 9",
         desc: "Back up, remove the old version, restart, then install the new version.",
         outro: "Open Binventory Workstation and check that each vessel takes a new reading. On a networked system, do the Host PC first, then remove and reinstall each Client PC with Client Install.",
         steps: [
             { title: "Back up first", msg: "Before you start, make a backup in Binventory Workstation: <b>File</b>, then <b>System Export</b>. Keep the DAT file. The lesson <a href=\"emulator.html?tutorial=free-mode&amp;lesson=export\" target=\"_blank\" rel=\"noopener\">Backing up with System Export</a> shows how.", target: "#mbBox", do: "read" },
-            { title: "Install detected", msg: "Run the new installer. It found Binventory 5.4.2 on this PC.", target: "#mbBox", do: "read" },
+            { title: "Install detected", msg: "Run the new installer. It found an older version of Binventory on this PC.", target: "#mbBox", do: "read" },
             { title: "Close the message", msg: "Click <b>OK</b>.", target: "#mbOK", do: "click", until: noDialog },
             { title: "Use Remove, not Upgrade", msg: "Do not use <b>Upgrade Existing Installation</b>. Remove the old version, restart, then install the new one. It is the more reliable way.", target: "#grpInstallType", do: "read" },
             { title: "Remove", msg: "Click <b>Remove Existing Binventory Installation</b>.", target: "#radClient", do: "click" },
@@ -678,7 +678,7 @@
     var SQLERR_PANEL = '<div class="eg-replica" role="img" aria-label="SQL Installation Error message">' +
         '<div class="eg-replica-title">SQL Installation Error</div>' +
         "<p>SQL Install Error:<br>Contact BinMaster @ 402-434-9105</p><p>Possible Issues:<br>- Not enough space<br>- Incompatible Hardware/Software<br>- Remnants of old install causing conflicts<br>- SQL Instance Already installed.<br>- Unknown Conflict</p></div>";
-    L.push({ id: "ts-installer", source: "Binventory Installer v5.5", section: "trouble", kind: "doc", title: "Installer problems", manual: "4",
+    L.push({ id: "ts-installer", source: "Binventory Workstation 1.0 Installer", section: "trouble", kind: "doc", title: "Installer problems", manual: "4",
         desc: "Connection failed, antivirus, restart required and other installer messages.",
         outro: "If the installer still fails, call BinMaster Technical Support at 402-434-9105. Have the installer log ready.",
         doc: [
