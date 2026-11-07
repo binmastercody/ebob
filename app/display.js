@@ -22,7 +22,8 @@
            hold:   how long a finished step stays on screen (green check) before the next one */
         normal: { label: "Normal", settle: 500, hold: 750, ring: 450 },
         slow: { label: "Slow", settle: 1200, hold: 1600, ring: 900 },
-        manual: { label: "Step by step", settle: 500, hold: 750, ring: 450 }
+        manual: { label: "Step by step", settle: 500, hold: 750, ring: 450 },
+        picture: { label: "Picture", settle: 150, hold: 400, ring: 0 }
     };
     var listeners = [];
 

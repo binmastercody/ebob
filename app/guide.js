@@ -483,6 +483,7 @@
                 S.phase = "ready"; ring.classList.remove("eg-ring--done");
                 setState("go", verb(st)); updateButtons(); return;
             }
+            if (window.__ebobPictureLock) return;
             if (D.get().pace === "manual" && st.do !== "read" && !(S.idx + 1 >= steps.length && !vis(t))) return;
             var holdMs = S.idx + 1 >= steps.length && !vis(t) ? Math.min(450, D.pace().hold) : D.pace().hold;
             if (now() - S.doneAt >= holdMs) advance();
@@ -635,6 +636,18 @@
         },
         state: function () { return { lesson: lesson.id, idx: S.idx, total: steps.length, phase: S.phase, review: S.review, finished: S.finished }; },
         /* test hook: tag the current target so automated checks can find it */
+        act: function () {
+            if (S.finished) return "done";
+            var st = steps[S.idx], t = target(st);
+            if (S.phase === "done") { advance(); return "advance"; }
+            if (S.phase !== "ready" || S.review >= 0) return "wait";
+            if (st.do === "read") { S.ack = true; return "ack"; }
+            if (st.do === "wait") return "wait";
+            if (!t) return "missing";
+            doStep(st, t);
+            if (st.do === "click") S.clicked = true;
+            return "did";
+        },
         markTarget: function () {
             var old = document.querySelectorAll("[data-eg-current]");
             for (var i = 0; i < old.length; i++) old[i].removeAttribute("data-eg-current");

@@ -532,3 +532,44 @@ html.eg-hc .eg-doc-card .eg-btn:disabled { background: #fff !important; color: #
 html.eg-hc .eg-doc-tag { background: #fff; color: #000; border: 2px solid #000; }
 html.eg-hc .eg-success-kicker { color: #000; }
 html.eg-hc.eg-scenario .ebob-tutorial-complete__check { background: #000; color: #fff; border-color: #000; }
+
+/* ========== picture guide (Share, menu, dialog) ========== */
+.eg-share-btn { gap: .35em; }
+html.eg-picture-mode .eg-topbar { display: none !important; }
+html.eg-picture-mode #egPicMenu, html.eg-picture-mode .eg-pic-dlg { display: none !important; }
+
+.eg-pic-menu {
+  position: fixed; z-index: 7000; min-width: 14em; padding: .45em;
+  background: var(--c-surface); color: var(--c-text); border: 1px solid var(--c-border);
+  border-radius: 12px; box-shadow: var(--c-shadow-lg);
+}
+.eg-pic-menu-kicker {
+  margin: 0; padding: .35em .75em .25em; font: 700 .72em/1.2 "Outfit", system-ui, sans-serif;
+  letter-spacing: .06em; text-transform: uppercase; color: var(--c-muted);
+}
+.eg-pic-item {
+  display: block; width: 100%; text-align: left; min-height: 2.6em; padding: .45em .75em;
+  border: 0; border-radius: 8px; background: transparent; color: var(--c-text);
+  font: 600 1em/1.3 "DM Sans", sans-serif; cursor: pointer;
+}
+.eg-pic-item:hover, .eg-pic-item:focus { background: var(--c-primary-tint); color: var(--c-primary-strong); outline: none; }
+
+.eg-pic-dlg {
+  position: fixed; inset: 0; z-index: 7200; display: flex; align-items: center; justify-content: center;
+  background: rgba(40, 44, 56, .45); padding: 1rem;
+}
+.eg-pic-card {
+  width: min(32em, 100%); padding: 1.2rem 1.3rem 1.15rem; background: var(--c-surface); color: var(--c-text);
+  border: 1px solid var(--c-border); border-radius: 16px; box-shadow: var(--c-shadow-lg);
+}
+.eg-pic-dlg-title { margin: 0 0 .5rem; font-family: "Outfit", system-ui, sans-serif; font-size: 1.35em; color: var(--c-text); }
+.eg-pic-status { margin: 0 0 1rem; color: var(--c-text-body); line-height: 1.45; }
+.eg-pic-actions { display: flex; flex-wrap: wrap; gap: .6rem; justify-content: flex-end; }
+
+html.eg-hc .eg-pic-menu { background: #fff; color: #000; border: 2px solid #000; }
+html.eg-hc .eg-pic-menu-kicker { color: #000; }
+html.eg-hc .eg-pic-item { color: #000; background: #fff; }
+html.eg-hc .eg-pic-item:hover, html.eg-hc .eg-pic-item:focus { background: #000; color: #fff; }
+html.eg-hc .eg-share-btn, html.eg-hc .hm-share { color: #000; border-color: #000; background: #fff; }
+html.eg-hc .eg-pic-card { background: #fff; color: #000; border: 3px solid #000; }
+html.eg-hc .eg-pic-dlg { background: rgba(0,0,0,.55); }

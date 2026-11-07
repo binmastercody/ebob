@@ -85,8 +85,18 @@ html.eg-home body { min-height: 100vh; }
 .hm-panel { grid-column: 1 / -1; padding: 1rem; border: 1px solid var(--c-primary-line); border-top: 3px solid var(--c-primary); border-radius: 14px; background: var(--c-surface-alt); }
 .hm-panel[hidden] { display: none; }
 
-/* lesson rows: title, one line, step count, Start */
+/* lesson rows: title, one line, step count, Start, plus a Share button beside the row */
+.hm-panel, .hm-rows, .hm-tiles, .hm-tile-h, .hm-card { min-width: 0; }
+.hm-tile-h { max-width: 100%; }
 .hm-rows { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .5rem; }
+.hm-li { display: flex; align-items: stretch; gap: .5rem; min-width: 0; max-width: 100%; }
+.hm-li > .hm-row { flex: 1; min-width: 0; }
+.hm-share {
+  flex: none; align-self: stretch; min-width: 2.9rem; min-height: 44px; padding: 0 .85rem;
+  border: 2px solid var(--c-primary); border-radius: 10px; background: var(--c-surface); color: var(--c-primary);
+  font: 700 .9rem/1 "Outfit", system-ui, sans-serif; cursor: pointer;
+}
+.hm-share:hover { background: var(--c-primary); color: #fff; }
 .hm-row { display: flex; align-items: center; gap: 1rem; min-height: 4.2rem; padding: .75rem 1rem; border: 1px solid var(--c-border-soft); border-radius: 10px; background: var(--c-surface); color: var(--c-text); text-decoration: none; transition: border-color .15s, box-shadow .15s; }
 .hm-row:hover { border-color: var(--c-primary); box-shadow: var(--c-shadow-md); }
 .hm-mark { flex: none; width: 1.6rem; height: 1.6rem; border-radius: 50%; border: 2px solid var(--c-border-control); display: flex; align-items: center; justify-content: center; color: #fff; }
@@ -171,8 +181,8 @@ html.eg-hc .hm-tile-title, html.eg-hc .hm-card h2, html.eg-hc .hm-ref h2, html.e
 html.eg-hc .hm-step-n, html.eg-hc .hm-mark, html.eg-hc .hm-search input { border-color: #000; }
 html.eg-hc .hm-btn--primary, html.eg-hc .hm-tag, html.eg-hc .hm-step.is-next .hm-step-n, html.eg-hc .hm-step.is-done .hm-step-n, html.eg-hc .hm-row.is-done .hm-mark { background: #000; border-color: #000; color: #fff; }
 html.eg-hc .hm-tag--done { background: #fff; color: #000; border: 2px solid #000; }
-html.eg-hc .hm-row-go { border-color: #000; color: #000; background: #fff; }
-html.eg-hc .hm-row:hover .hm-row-go { background: #000; color: #fff; }
+html.eg-hc .hm-row-go, html.eg-hc .hm-share { border-color: #000; color: #000; background: #fff; }
+html.eg-hc .hm-row:hover .hm-row-go, html.eg-hc .hm-share:hover, html.eg-hc .hm-share:focus { background: #000; color: #fff; }
 html.eg-hc .hm-page :focus-visible { outline: 4px solid #000; box-shadow: 0 0 0 3px #fff, 0 0 0 8px #fff; }
 html.eg-hc .hm-band :focus-visible { outline: 4px solid #fff; box-shadow: 0 0 0 3px #000, 0 0 0 8px #000; }
 html.eg-reduce-motion .hm-step, html.eg-reduce-motion .hm-tile, html.eg-reduce-motion .hm-row, html.eg-reduce-motion .hm-chev { transition: none; }

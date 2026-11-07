@@ -55,12 +55,13 @@
 
   function row(l, p) {
     var done = !!p[l.id];
-    return '<li><a class="hm-row' + (done ? " is-done" : "") + '" href="' + href(l) + '" data-lesson="' + l.id + '">' +
+    return '<li class="hm-li"><a class="hm-row' + (done ? " is-done" : "") + '" href="' + href(l) + '" data-lesson="' + l.id + '">' +
       '<span class="hm-mark" aria-hidden="true">' + (done ? ico("check") : "") + "</span>" +
       '<span class="hm-row-text"><span class="hm-row-title">' + esc(l.title) + (done ? '<span class="eg-sr-only"> (done)</span>' : "") + "</span>" +
       '<span class="hm-row-line">' + esc(l.desc) + "</span></span>" +
       '<span class="hm-row-meta">' + l.stepCount + " steps</span>" +
-      '<span class="hm-row-go" aria-hidden="true">Start</span></a></li>';
+      '<span class="hm-row-go" aria-hidden="true">Start</span></a>' +
+      '<button type="button" class="hm-share" data-share="' + l.id + '" aria-haspopup="menu" aria-expanded="false" aria-label="Share ' + esc(l.title) + ' as a picture guide">Share</button></li>';
   }
 
   /* ---------- Start here ---------- */
