@@ -13479,6 +13479,18 @@
         };
     }
 
+    window.__ebobEnsureGroup = function (spec) {
+        if (!spec || !spec.id || !spec.name) return;
+        if (!state.groups) state.groups = [];
+        var exists = state.groups.some(function (g) { return g.id === spec.id || g.name === spec.name; });
+        if (exists) return;
+        state.groups.push({
+            id: spec.id,
+            name: spec.name,
+            vesselIds: spec.vesselIds ? spec.vesselIds.slice() : [],
+            siteId: spec.siteId || "st1"
+        });
+    };
     window.__ebobNativeTutorial = {
         state: function () {
             var t = guidedGetActiveTutorialState();

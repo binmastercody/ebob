@@ -402,7 +402,13 @@
     function tick() {
         if (S.finished) return;
         if (S.phase === "loading") {
-            if (appReady()) { enter(0, { quiet: true }); }
+            if (appReady()) {
+                if (!S.setupDone && lesson && typeof lesson.setup === "function") {
+                    try { lesson.setup(); } catch (e) {}
+                    S.setupDone = true;
+                }
+                enter(0, { quiet: true });
+            }
             else { setState("wait", "Binventory is starting"); placeCoach(null, null); return; }
         }
         var i = S.review >= 0 ? S.review : S.idx;

@@ -348,6 +348,11 @@
     L.push({ id: "schedules", section: "readings", title: "Measure on a schedule", manual: "5.4.9",
         desc: "Measure a group every hour on weekdays.",
         outro: "The schedule is active as soon as it is saved. Uncheck Schedule Active later to pause it.",
+        setup: function () {
+            if (typeof window.__ebobEnsureGroup === "function") {
+                window.__ebobEnsureGroup({ id: "gCement", name: "Cement Silos", vesselIds: ["v1", "v2"], siteId: "st1" });
+            }
+        },
         steps: flat([
             menu("Vessel", '[data-action="schedule-maintenance"]', "Schedule Maintenance", "Scheduler Maintenance"),
             [
@@ -359,8 +364,8 @@
             { title: "Skip Saturday", msg: "Uncheck <b>Sat</b>.", target: '#backdropAppStack input[data-i="6"]', do: "uncheck" },
             { title: "Every hour", msg: "Intervals is in minutes. <b>60</b> means every hour, from the Start Time to the End Time: 8 AM to 5 PM.", target: "#mssIntervalMinutes", do: "read" },
             { title: "Assign groups", msg: "Click <b>Assign Groups</b>.", target: "#mssAssign", do: "click", until: function () { return visible("#sgaAdd"); } },
-            { title: "Pick a group", msg: "Click <b>Mill Line A</b>.", target: '#sgaUnBody tr[data-group-id="g1"]', do: "click" },
-            { title: "Add it", msg: "Click <b>Add</b>.", target: "#sgaAdd", do: "click", until: function () { return !!document.querySelector('#sgaAsBody tr[data-group-id="g1"]'); } },
+            { title: "Pick a group", msg: "Click <b>Cement Silos</b>, the group you made in Group vessels together.", target: '#sgaUnBody tr[data-group-id="gCement"]', do: "click" },
+            { title: "Add it", msg: "Click <b>Add</b>.", target: "#sgaAdd", do: "click", until: function () { return !!document.querySelector('#sgaAsBody tr[data-group-id="gCement"]'); } },
             { title: "Done assigning", msg: "Click <b>Close</b>.", target: "#sgaClose", do: "click", until: function () { return visible("#mssSave"); } },
             { title: "Save", msg: "Click <b>Save</b>.", target: "#mssSave", do: "click", until: function () { return !visible("#mssName"); } },
             { title: "Close", msg: "Click <b>Close</b>.", target: "#backdropApp #smBtnClose", do: "click", until: function () { return !win("Scheduler Maintenance"); } }
