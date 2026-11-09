@@ -474,14 +474,14 @@
         };
     }
 
+    /* The email opens with an empty first line at the top of the message, so the cursor lands
+       where the picture goes: paste with Ctrl+V and it sits above the lesson link and step list.
+       No instructions in the email itself. */
     function mailtoUrl(l, steps, copied) {
         var subject = "Binventory guide: " + l.title;
         var link = "Online lesson: " + SITE + hrefOf(l);
-        var note = copied
-            ? "The picture guide is on your clipboard. Click in this email and press Ctrl+V to paste it. It is also in your Downloads folder."
-            : "The picture guide is in your Downloads folder.";
         function pack(lines, extra) {
-            return ["Hello,", ""].concat(lines).concat(["", link, "", note]).concat(extra || []).join("\r\n");
+            return ["", "", l.title, link, ""].concat(lines).concat(extra || []).join("\r\n");
         }
         function urlFor(lines, extra) {
             return "mailto:?subject=" + encodeURIComponent(subject) + "&body=" + encodeURIComponent(pack(lines, extra));
@@ -647,8 +647,14 @@
                 copyError = "This browser cannot put pictures on the clipboard.";
             }
             if (act === "email") {
+                if (!copied) downloadAll(id, parts); /* nothing on the clipboard: save it so it can be attached */
                 window.EbobPicture.openMail(mailtoUrl(l, m.steps, !!copied));
-                var em = { message: "Done. Your email program should open with a new message.", parts: parts.length, copied: copied, forceSave: true };
+                var em = {
+                    message: copied
+                        ? "Done. Your email opens with the cursor at the top of the message. Press Ctrl+V there to paste the picture guide."
+                        : "Done. Your email opens now. The picture guide is in your Downloads folder to attach.",
+                    parts: parts.length, copied: copied, forceSave: true
+                };
                 if (copyError) em.copyError = copyError;
                 finishDialog(em, id, parts);
                 return;
