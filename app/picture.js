@@ -76,9 +76,37 @@
             if (d) imgs[i].src = d;
         }
     }
+    /* The screenshot library copies the page's markup, not its live state, so a radio
+       picked by clicking, a ticked box, a typed value or the license text would be blank.
+       Write that state back into the markup first. */
+    function syncFormState(doc) {
+        var els = doc.querySelectorAll("input, textarea, select");
+        for (var i = 0; i < els.length; i++) {
+            var el = els[i], tag = el.tagName;
+            try {
+                if (tag === "TEXTAREA") {
+                    if (el.textContent !== el.value) el.textContent = el.value;
+                } else if (tag === "SELECT") {
+                    for (var j = 0; j < el.options.length; j++) {
+                        if (el.options[j].selected) el.options[j].setAttribute("selected", "");
+                        else el.options[j].removeAttribute("selected");
+                    }
+                } else if (el.type === "checkbox" || el.type === "radio") {
+                    if (el.checked) el.setAttribute("checked", ""); else el.removeAttribute("checked");
+                } else if (el.type !== "file" && el.type !== "password") {
+                    el.setAttribute("value", el.value);
+                }
+            } catch (e) {}
+        }
+        var frames = doc.querySelectorAll("iframe");
+        for (var k = 0; k < frames.length; k++) {
+            try { if (frames[k].contentDocument) syncFormState(frames[k].contentDocument); } catch (e2) {}
+        }
+    }
     async function shoot(win) {
         var doc = win.document;
         rewriteAssets(doc);
+        syncFormState(doc);
         doc.documentElement.classList.add("eg-picture-mode");
         var api = win.modernScreenshot || window.modernScreenshot;
         if (api && api.domToBlob) {

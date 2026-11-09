@@ -221,8 +221,20 @@
         if (!opts || !opts.quiet) { try { elTitle.focus({ preventScroll: true }); } catch (e) {} }
     }
 
+    /* a group box's title (legend) sits on its top border, outside the box itself;
+       count it in, so the ring goes around the title instead of through it */
+    function targetRect(t) {
+        var r = t.getBoundingClientRect(), u = { left: r.left, top: r.top, right: r.right, bottom: r.bottom };
+        var lg = t.querySelector ? t.querySelector(":scope > legend, :scope > .vd-groupbox-cap, :scope > .vs-group-legend") : null;
+        if (lg) {
+            var q = lg.getBoundingClientRect();
+            if (q.width) { u.left = Math.min(u.left, q.left - 6); u.top = Math.min(u.top, q.top - 4); u.right = Math.max(u.right, q.right); }
+        }
+        u.width = u.right - u.left; u.height = u.bottom - u.top;
+        return u;
+    }
     function placeRing(t, st) {
-        var r = t.getBoundingClientRect();
+        var r = targetRect(t);
         var pad = 5;
         ring.style.left = (r.left - pad) + "px";
         ring.style.top = (r.top - pad) + "px";
@@ -270,7 +282,7 @@
         if (t && st && st.ring === false) t = null;
         if (t) {
             var sc = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--eg-scale")) || 1;
-            list.push(grow(box(t.getBoundingClientRect()), 8 + Math.ceil(16 * sc)));
+            list.push(grow(box(targetRect(t)), 8 + Math.ceil(16 * sc)));
             if (hand.classList.contains("on")) list.push(grow(box(hand.getBoundingClientRect()), 4));
         }
         readingEls(st).forEach(function (e) { list.push(grow(box(e.getBoundingClientRect()), 6)); });
@@ -344,6 +356,7 @@
     }
     /* the window is shown only once its place is decided, so it never appears in one spot and jumps to another */
     function markPlaced() { requestAnimationFrame(function () { document.documentElement.classList.add("eg-placed"); }); }
+    setTimeout(function () { document.documentElement.classList.add("eg-placed"); }, 2500); /* never leave the card hidden */
     var userMin = false, lastSR = null;
     function placeCoach(t, st) {
         compose();
@@ -390,7 +403,7 @@
         bMin.setAttribute("aria-pressed", String(userMin));
         bMin.querySelector("span").textContent = compact ? "Show text" : "Hide text";
         S.compact = compact;
-        clearTopbar(t && !(st && st.ring === false) ? [box(t.getBoundingClientRect()), ring.classList.contains("on") ? box(ring.getBoundingClientRect()) : null] .concat(readingEls(st).map(function (e) { return box(e.getBoundingClientRect()); })) : []);
+        clearTopbar(t && !(st && st.ring === false) ? [box(targetRect(t)), ring.classList.contains("on") ? box(ring.getBoundingClientRect()) : null] .concat(readingEls(st).map(function (e) { return box(e.getBoundingClientRect()); })) : []);
     }
 
     /* the card can change height after it was placed (state badge, hint, fonts): place it again */

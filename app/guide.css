@@ -230,6 +230,10 @@ html.eg-scenario .ebob-tutorial-complete__btn { font-family: "DM Sans", Arial, s
 
 /* global focus ring in the emulator so keyboard users always see where they are */
 html.eg-emulator :focus-visible { outline: 3px solid var(--c-info) !important; outline-offset: 2px; }
+/* the step title takes focus only so screen readers read it; no ring on it */
+html .eg-title:focus, html .eg-title:focus-visible { outline: none !important; }
+/* keep the card hidden until its place is decided, so it does not appear on one side and jump */
+html:not(.eg-placed) .eg-coach { visibility: hidden; }
 
 /* ================= high contrast guide ================= */
 html.eg-hc { --eg-focus: #000; }
