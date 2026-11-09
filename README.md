@@ -5,7 +5,7 @@ Open `index.html` in a browser (it opens the practice screen, see below). Everyt
 ## Opening screen (same pattern as the 3D Install, BinDisc and CNCR guides)
 `index.html` opens the Binventory practice screen right away (`emulator.html`, free mode) with:
 - a **welcome card** over the live Binventory screen: "Welcome to the Binventory Workstation Guide", Get Started, and the red Troubleshooting corner button
-- a floating **"What would you like to do?"** box on the right (white card, yellow border, gray header with minimize, dark green buttons) with five choices: Install, upgrade or back up / Set up my site / Set up alarms and email / Readings and reports / Fix a problem. A choice opens its lessons in the same box.
+- a floating **"What would you like to do?"** box beside the Binventory window (same layout as the other guides: header with minimize, stacked buttons; in the eBob violet palette, 16px text that follows the text-size setting) with five choices: Install, upgrade or back up / Set up my site / Set up alarms and email / Readings and reports / Fix a problem. A choice opens its lessons in the same box.
 - a **copy-link icon** on every choice and lesson, so a tech can send a direct link. `emulator.html?do=<install|site|alerts|readings|trouble>` opens the box on that choice with no welcome card; `emulator.html?menu=1` opens the box with no welcome card (used by every lesson's Menu button and Back to menu).
 - `app/quickmenu.js`, `app/quickmenu.css`: the welcome card and the box. The five choices and their lesson ids are the `CHOICES` list at the top of `quickmenu.js`.
 

@@ -152,7 +152,19 @@
         root.classList.toggle("qm-docked", room);
         root.classList.toggle("qm-docked-welcome", room);
         if (window.__ebobUpdateAppColumnLayout) window.__ebobUpdateAppColumnLayout();
+        requestAnimationFrame(besideWindow);
     }
+    /* sit the box just right of the Binventory window, top-aligned with it, when there is room */
+    function besideWindow() {
+        var sh = document.getElementById("appShell"), r = sh && sh.getBoundingClientRect();
+        var pw = panel.getBoundingClientRect().width;
+        panel.style.top = ""; var top = parseFloat(getComputedStyle(panel).top) || 0;
+        if (r && r.width && r.right + 20 + pw + 16 <= window.innerWidth) {
+            panel.style.left = Math.round(r.right + 20) + "px"; panel.style.right = "auto";
+            if (r.top > top) panel.style.top = Math.round(r.top) + "px";
+        } else { panel.style.left = ""; panel.style.right = ""; panel.style.top = ""; }
+    }
+    setInterval(besideWindow, 400);
     window.addEventListener("resize", function () { requestAnimationFrame(dock); });
     if (window.EbobDisplay && window.EbobDisplay.onChange) window.EbobDisplay.onChange(function () { requestAnimationFrame(dock); });
 
