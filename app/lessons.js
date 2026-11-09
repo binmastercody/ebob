@@ -1,5 +1,5 @@
 /*
- * eBob Guide lesson catalog. Used by the lesson menu (index.html) and the guide engine (emulator.html).
+ * eBob Guide lesson catalog. Used by the quick menu (app/quickmenu.js), the lesson list (lessons.html) and the guide engine (emulator.html).
  * Step content follows the Binventory Workstation 1.0 Operator's Manual; section numbers are in `manual`.
  *
  * Step fields

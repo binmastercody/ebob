@@ -55,9 +55,10 @@
         top.className = "eg-ui eg-topbar";
         var sec = shownLesson ? LS.sections.filter(function (s) { return s.id === shownLesson.section; })[0] : null;
         top.innerHTML =
-            '<a class="eg-tb-btn eg-home" href="index.html">' + ICON_GRID + "<span>All lessons</span></a>" +
-            '<div class="eg-top-title"><span class="eg-top-kicker">' + esc(sec ? sec.title : "Free practice") + "</span>" +
-            '<span class="eg-top-name">' + esc(shownLesson ? shownLesson.title : "Binventory Workstation") + "</span></div>";
+            (shownLesson ? '<a class="eg-tb-btn eg-home" href="emulator.html?menu=1">' + ICON_GRID + "<span>Menu</span></a>"
+                         : '<a class="eg-tb-btn eg-home" href="lessons.html">' + ICON_GRID + "<span>All lessons</span></a>") +
+            '<div class="eg-top-title"><span class="eg-top-kicker">' + esc(sec ? sec.title : "Binventory Workstation 1.0 Training") + "</span>" +
+            '<span class="eg-top-name">' + esc(shownLesson ? shownLesson.title : "Practice copy of Binventory") + "</span></div>";
         document.body.appendChild(top);
         D.buildToolbar(top);
         var fab = document.getElementById("guideBackToMenu");
@@ -614,7 +615,7 @@
             '<div class="eg-success-actions">' +
             (next ? '<a class="eg-btn eg-btn--big" href="' + lessonHref(next) + '" aria-label="Next lesson: ' + esc(next.title) + '">Next lesson' + ICON_NEXT + "</a>" : "") +
             '<div class="eg-success-row">' +
-            '<a class="eg-btn eg-btn--light" href="index.html">' + ICON_GRID + "Back to guide</a>" +
+            '<a class="eg-btn eg-btn--light" href="emulator.html?menu=1">' + ICON_GRID + "Back to menu</a>" +
             '<a class="eg-btn eg-btn--light" href="' + lessonHref(lesson) + '">Repeat</a>' +
             "</div></div></div>";
         var fadeMs = D.reduceMotion() ? 0 : 160;

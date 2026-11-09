@@ -13290,7 +13290,7 @@
         } catch (e) {
             /* private mode */
         }
-        window.location.href = "index.html";
+        window.location.href = "emulator.html?menu=1";
     }
 
     function finishDbReadOnlyTutorial() {

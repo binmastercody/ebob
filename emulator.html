@@ -8,11 +8,12 @@
     <title>Binventory eBob Guide</title>
 <script src="app/picture-boot.js"></script>
     <script>
-    /* eBob Guide boot: no lesson or scenario -> lesson menu; a lesson always runs on the sample site (free mode). */
+    /* eBob Guide boot: no lesson or scenario -> practice screen with the quick menu; a lesson always runs on the sample site (free mode). */
     (function () {
         var sp = new URLSearchParams(location.search);
         if (sp.get("lesson") && sp.get("tutorial") !== "free-mode") { sp.set("tutorial", "free-mode"); location.replace(location.pathname + "?" + sp.toString()); return; }
-        if (!sp.get("tutorial")) { location.replace("index.html"); return; }
+        /* no lesson: the practice screen with the "What would you like to do?" box (welcome card on a plain visit) */
+        if (!sp.get("tutorial")) { if (!sp.get("do") && !sp.get("menu")) sp.set("welcome", "1"); sp.set("tutorial", "free-mode"); history.replaceState(null, "", location.pathname + "?" + sp.toString() + location.hash); }
         if (sp.get("fresh") === "1") {
             try { ["ebobTutorialScenarioStateV1", "ebobTutorialSvcStateV1", "ebobSimImportStateV1", "ebobSimImportRestartV1"].forEach(function (k) { sessionStorage.removeItem(k); }); } catch (e) {}
             sp.delete("fresh"); history.replaceState(null, "", location.pathname + "?" + sp.toString());
@@ -27,6 +28,7 @@
     })();
     </script>
     <link rel="stylesheet" href="app/guide.css">
+    <link rel="stylesheet" href="app/quickmenu.css">
     <style>
         :root {
             --page-grad-a: #667eea;
@@ -9807,7 +9809,7 @@
     </div>
 
     <div class="page-wrap" id="pageWrap">
-        <a href="index.html" id="guideBackToMenu" class="guide-back-fab" aria-label="Back to scenario menu">Back to menu</a>
+        <a href="emulator.html?menu=1" id="guideBackToMenu" class="guide-back-fab" aria-label="Back to scenario menu">Back to menu</a>
 
         <div class="desktop-with-taskbar">
         <div class="app-shell" id="appShell">
@@ -11250,6 +11252,7 @@
     <script src="app/display.js"></script>
     <script src="app/lessons.js"></script>
     <script src="app/guide.js"></script>
+    <script src="app/quickmenu.js"></script>
 <script src="app/modern-screenshot.js"></script>
 <script src="app/picture-assets.js"></script>
 <script src="app/picture.js"></script>

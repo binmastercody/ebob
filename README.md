@@ -1,9 +1,16 @@
 # Binventory eBob Guide
 
-Open `index.html` in a browser. Everything runs from local files (file://), with no server and no internet needed. The only exceptions are the BinMaster support links, which open in a new tab.
+Open `index.html` in a browser (it opens the practice screen, see below). Everything runs from local files (file://), with no server and no internet needed. The only exceptions are the BinMaster support links, which open in a new tab.
+
+## Opening screen (same pattern as the 3D Install, BinDisc and CNCR guides)
+`index.html` opens the Binventory practice screen right away (`emulator.html`, free mode) with:
+- a **welcome card** over the live Binventory screen: "Welcome to the Binventory Workstation Guide", Get Started, and the red Troubleshooting corner button
+- a floating **"What would you like to do?"** box on the right (white card, yellow border, gray header with minimize, dark green buttons) with five choices: Install, upgrade or back up / Set up my site / Set up alarms and email / Readings and reports / Fix a problem. A choice opens its lessons in the same box.
+- a **copy-link icon** on every choice and lesson, so a tech can send a direct link. `emulator.html?do=<install|site|alerts|readings|trouble>` opens the box on that choice with no welcome card; `emulator.html?menu=1` opens the box with no welcome card (used by every lesson's Menu button and Back to menu).
+- `app/quickmenu.js`, `app/quickmenu.css`: the welcome card and the box. The five choices and their lesson ids are the `CHOICES` list at the top of `quickmenu.js`.
 
 ## Files
-- `index.html`: home page. Start here (five numbered steps with check marks and a Continue button), Find a task (seven task tiles that open to their lessons, plus a title search), Advanced (for IT staff) and Reference, with one Display settings button
+- `lessons.html`: the full lesson list (was the home page; linked from the box as "Full lesson list"). Start here (five numbered steps with check marks and a Continue button), Find a task (seven task tiles that open to their lessons, plus a title search), Advanced (for IT staff) and Reference, with one Display settings button
 - `app/home.js`, `app/home.css`: home page layout, task grouping and progress marks (lesson order and sections stay in `app/lessons.js`)
 - `emulator.html`: the Binventory Workstation emulator with the guide layer (`?lesson=<id>`, or `?tutorial=db-read-only` / `pending-unknown-status`)
 - `installer.html?lesson=<id>`: a working copy of the Binventory Workstation 1.0 Installer wizard, used by the Server/Host Install, Client Install, project import, Advanced (external SQL Server, add a site), upgrade lessons (`?mode=fresh|upgrade` to try it without a lesson). The upgrade lesson teaches the safe way: back up, choose Remove, restart, then do a normal install. It never uses the installer's Upgrade or Repair options. For a damaged install, remove, restart and install again
