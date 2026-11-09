@@ -539,7 +539,7 @@ html.eg-hc.eg-scenario .ebob-tutorial-complete__check { background: #000; color:
 
 /* ========== picture guide (Share, menu, dialog) ========== */
 .eg-share-btn { gap: .35em; }
-html.eg-picture-mode .eg-topbar { display: none !important; }
+html.eg-picture-mode .eg-topbar, html.eg-picture-mode .inst-note { display: none !important; }
 html.eg-picture-mode #egPicMenu, html.eg-picture-mode .eg-pic-dlg { display: none !important; }
 
 .eg-pic-menu {

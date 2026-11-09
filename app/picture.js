@@ -7,7 +7,7 @@
     var LS = window.EbobLessons;
     if (!LS) return;
     var SITE = "https://binmastercody.github.io/ebob/";
-    var W = 1200, MAX_H = 13500, PART_MAX = 10, MAIL_MAX = 1800;
+    var W = 1200, MAX_H = 32000, PART_MAX = 60, MAIL_MAX = 1800; /* one picture holds the whole lesson (Copy PNG can only copy one); split only past the canvas height limit */
     var HEAD = 124, RED_H = 5, HEAD_H = HEAD + RED_H;
     var FONT = '"DM Sans","Outfit","Segoe UI",Arial,sans-serif';
     var C = { header: "#282C38", red: "#C0202A", violet: "#5B3FA6", bg: "#F3F4F6", text: "#282C38", body: "#363B47", white: "#FFFFFF", target: "#E0201C" };
