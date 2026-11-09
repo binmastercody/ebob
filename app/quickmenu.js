@@ -75,23 +75,25 @@
         body.innerHTML = CHOICES.map(function (c, i) {
             return '<div class="qm-row"><button type="button" class="qm-item" data-choice="' + c.id + '">' +
                 '<span class="qm-num" aria-hidden="true">' + (i + 1) + "</span>" +
-                '<span class="qm-item-text"><span class="qm-item-title">' + esc(c.title) + '</span><span class="qm-item-blurb">' + esc(c.blurb) + "</span></span>" +
-                ICO.chev + "</button>" + linkBtn(abs("emulator.html?do=" + c.id), c.title) + "</div>";
+                '<span class="qm-item-text"><span class="qm-item-title"><span class="eg-sr-only">' + (i + 1) + ": </span>" + esc(c.title) + '</span><span class="qm-item-blurb">' + esc(c.blurb) + "</span></span>" +
+                ICO.chev + "</button>" + linkBtn(abs("emulator.html?do=" + c.id), (i + 1) + " " + c.title) + "</div>";
         }).join("");
     }
     function renderChoice(c) {
         current = c;
-        var p = progress();
-        titleEl.textContent = c.title;
+        var p = progress(), n = CHOICES.indexOf(c) + 1;
+        titleEl.textContent = n + ". " + c.title;
         backBtn.hidden = false;
+        /* lesson numbers follow the CHOICES list (2.1, 2.2 ...) so they stay the same for everyone */
         body.innerHTML = '<p class="qm-sub">Pick a lesson. It runs on this practice copy of Binventory.</p>' +
-            c.ids.map(function (id) { return LS.byId(id); }).filter(Boolean).map(function (l) {
-                var done = !!p[l.id];
+            c.ids.map(function (id, i) { var l = LS.byId(id); return l ? { l: l, num: n + "." + (i + 1) } : null; }).filter(Boolean).map(function (x) {
+                var l = x.l, done = !!p[l.id];
                 return '<div class="qm-row"><a class="qm-item" href="' + esc(lessonHref(l)) + '">' +
-                    (done ? '<span class="qm-num qm-done" aria-hidden="true">' + ICO.check + "</span>" : "") +
-                    '<span class="qm-item-text"><span class="qm-item-title">' + esc(l.title) + (done ? '<span class="eg-sr-only"> (done)</span>' : "") + "</span>" +
+                    '<span class="qm-num qm-num--lesson' + (done ? " qm-done" : "") + '" aria-hidden="true">' + x.num + "</span>" +
+                    '<span class="qm-item-text"><span class="qm-item-title"><span class="eg-sr-only">' + x.num + ": </span>" + esc(l.title) +
+                    (done ? '<span class="qm-done-tick" aria-hidden="true">' + ICO.check + '</span><span class="eg-sr-only"> (done)</span>' : "") + "</span>" +
                     (l.desc ? '<span class="qm-item-blurb">' + esc(l.desc) + "</span>" : "") + "</span>" +
-                    ICO.chev + "</a>" + linkBtn(abs(lessonHref(l)), l.title) + "</div>";
+                    ICO.chev + "</a>" + linkBtn(abs(lessonHref(l)), x.num + " " + l.title) + "</div>";
             }).join("");
     }
     function show(c, focus) {
