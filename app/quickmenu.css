@@ -59,11 +59,13 @@
 .qm-done-tick svg { width: .75em; height: .75em; fill: none; stroke: currentColor; stroke-width: 3.4; stroke-linecap: round; stroke-linejoin: round; }
 .qm-chev { flex-shrink: 0; width: 1em; height: 1em; fill: none; stroke: rgba(255,255,255,.85); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
 
-.qm-link {
+.qm-link, .qm-pdf {
   flex-shrink: 0; width: 2.9em; margin: 0; padding: 0; display: inline-flex; align-items: center; justify-content: center;
   border: 0; border-left: 1px solid rgba(255, 255, 255, .25); background: rgba(0, 0, 0, .16); color: #fff; cursor: pointer;
 }
-.qm-link:hover { background: rgba(0, 0, 0, .32); }
+.qm-link:hover, .qm-pdf:hover, .qm-pdf[aria-expanded=true] { background: rgba(0, 0, 0, .32); }
+.qm-pdf { width: 3.1em; font: 700 .72em/1 "Outfit", system-ui, sans-serif; letter-spacing: .04em; }
+.qm-pdf:focus-visible { outline: 3px solid #fff; outline-offset: -5px; border-radius: 8px; }
 .qm-link svg { width: 1.25em; height: 1.25em; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .qm-link.is-copied { background: var(--c-success, #18712F); color: #fff; }
 

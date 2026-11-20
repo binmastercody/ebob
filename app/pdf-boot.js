@@ -1,8 +1,8 @@
-/* Runs first on lesson pages. A hidden iframe with ?picture=1 gets its own memory
-   storage so building a picture guide never changes the user's saved progress. */
+/* Runs first on lesson pages. A lesson page opened with ?pdf=1 (by tools/build-pdfs.mjs) gets its own memory
+   storage so building a PDF never changes the user's saved progress. */
 (function () {
     try {
-        if (new URLSearchParams(location.search).get("picture") !== "1") return;
+        if (new URLSearchParams(location.search).get("pdf") !== "1") return;
         function mem() {
             var s = Object.create(null);
             return {

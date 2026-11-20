@@ -66,6 +66,10 @@
         backBtn = panel.querySelector(".qm-back"), minBtn = panel.querySelector(".qm-min"), status = panel.querySelector(".qm-status");
     var current = null;
 
+    /* every lesson has a PDF guide; the button opens the PDF menu from share.js (open, download, email, copy link) */
+    function pdfBtn(l, num) {
+        return '<button type="button" class="qm-pdf" data-share="' + esc(l.id) + '" aria-haspopup="menu" aria-expanded="false" aria-label="PDF guide: ' + esc(num + " " + l.title) + '" title="PDF guide">PDF</button>';
+    }
     function linkBtn(url, label) {
         return '<button type="button" class="qm-link" data-copy="' + esc(url) + '" aria-label="Copy link: ' + esc(label) + '" title="Copy link">' + ICO.link + "</button>";
     }
@@ -94,7 +98,7 @@
                     '<span class="qm-item-text"><span class="qm-item-title"><span class="eg-sr-only">' + x.num + ": </span>" + esc(l.title) +
                     (done ? '<span class="qm-done-tick" aria-hidden="true">' + ICO.check + '</span><span class="eg-sr-only"> (done)</span>' : "") + "</span>" +
                     (l.desc ? '<span class="qm-item-blurb">' + esc(l.desc) + "</span>" : "") + "</span>" +
-                    ICO.chev + "</a>" + linkBtn(abs(lessonHref(l)), x.num + " " + l.title) + "</div>";
+                    ICO.chev + "</a>" + pdfBtn(l, x.num) + linkBtn(abs(lessonHref(l)), x.num + " " + l.title) + "</div>";
             }).join("") + (c.pdf ? '<div class="qm-row"><a class="qm-item" href="' + esc(c.pdf.href) + '" target="_blank" rel="noopener">' +
                    '<span class="qm-num qm-num--lesson" aria-hidden="true">PDF</span><span class="qm-item-text"><span class="qm-item-title">' + esc(c.pdf.title) + '</span>' +
                    '<span class="qm-item-blurb">' + esc(c.pdf.blurb) + '</span></span>' + ICO.chev + '</a>' + linkBtn(abs(c.pdf.href), c.pdf.title) + '</div>' : "");

@@ -61,7 +61,7 @@
       '<span class="hm-row-line">' + esc(l.desc) + "</span></span>" +
       '<span class="hm-row-meta">' + l.stepCount + " steps</span>" +
       '<span class="hm-row-go" aria-hidden="true">Start</span></a>' +
-      '<button type="button" class="hm-share" data-share="' + l.id + '" aria-haspopup="menu" aria-expanded="false" aria-label="Share ' + esc(l.title) + ' as a picture guide">Share</button></li>';
+      '<button type="button" class="hm-share" data-share="' + l.id + '" aria-haspopup="menu" aria-expanded="false" aria-label="Share ' + esc(l.title) + ' as a PDF guide">PDF</button></li>';
   }
 
   /* ---------- Start here ---------- */

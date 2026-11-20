@@ -537,7 +537,7 @@ html.eg-hc .eg-doc-tag { background: #fff; color: #000; border: 2px solid #000; 
 html.eg-hc .eg-success-kicker { color: #000; }
 html.eg-hc.eg-scenario .ebob-tutorial-complete__check { background: #000; color: #fff; border-color: #000; }
 
-/* ========== picture guide (Share, menu, dialog) ========== */
+/* ========== PDF guide (Share menu, dialog); eg-picture-mode is the ?pdf=1 capture page ========== */
 .eg-share-btn { gap: .35em; }
 html.eg-picture-mode .eg-topbar, html.eg-picture-mode .inst-note { display: none !important; }
 html.eg-picture-mode #egPicMenu, html.eg-picture-mode .eg-pic-dlg { display: none !important; }
