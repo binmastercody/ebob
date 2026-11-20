@@ -30,7 +30,7 @@
   /* task tiles: every lesson except the Advanced ones */
   var TASKS = [
     { id: "install", title: "Install and upgrade", line: "Put Binventory on a PC, or upgrade it.", icon: "download", ids: ["plan", "install", "network-install", "install-import", "upgrade"] },
-    { id: "site", title: "Set up my site", line: "Sensors, vessels and site settings.", icon: "silo", ids: ["tour", "system-setup", "site-setup", "sensor-network", "add-vessel", "more-vessels", "measure"] },
+    { id: "site", title: "Set up my site", line: "Sensors, vessels and site settings.", icon: "silo", ids: ["tour", "system-setup", "site-setup", "sensor-network", "add-vessel", "more-vessels", "vessel-shape", "vessel-contents", "measure"] },
     { id: "alerts", title: "Alerts and email", line: "Get an email when a level is high or low.", icon: "bell", ids: ["level-alarms", "email-setup", "contacts", "email-alerts"] },
     { id: "readings", title: "Readings and schedules", line: "Measure vessels on a schedule.", icon: "gauge", ids: ["vessel-details", "groups", "schedules", "temporary-group"] },
     { id: "reports", title: "Reports", line: "Print or email inventory reports.", icon: "chart", ids: ["inventory-report", "history-report", "site-status-report"] },

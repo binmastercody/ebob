@@ -14,7 +14,8 @@
         { id: "install", title: "Install, upgrade or back up", blurb: "Put Binventory on a PC, upgrade it, or save a backup.",
           ids: ["plan", "install", "network-install", "install-import", "upgrade", "export", "install-site", "install-external-sql"] },
         { id: "site", title: "Set up my site", blurb: "A quick tour, sensor networks, vessels and users.",
-          ids: ["tour", "system-setup", "site-setup", "sensor-network", "add-vessel", "more-vessels", "measure", "users"] },
+          ids: ["tour", "system-setup", "site-setup", "sensor-network", "add-vessel", "more-vessels", "measure", "users", "vessel-shape", "vessel-contents"],
+          pdf: { href: "pdf/Binventory1.0-Vessel-Configuration.pdf", title: "Binventory 1.0 Vessel Configuration (PDF)", blurb: "Print or email it: every click for the size, shape and density of a vessel." } },
         { id: "alerts", title: "Set up alarms and email", blurb: "Get an email when a level is high or low.",
           ids: ["level-alarms", "email-setup", "contacts", "email-alerts"] },
         { id: "readings", title: "Readings and reports", blurb: "Schedules, groups, history and inventory reports.",
@@ -94,7 +95,9 @@
                     (done ? '<span class="qm-done-tick" aria-hidden="true">' + ICO.check + '</span><span class="eg-sr-only"> (done)</span>' : "") + "</span>" +
                     (l.desc ? '<span class="qm-item-blurb">' + esc(l.desc) + "</span>" : "") + "</span>" +
                     ICO.chev + "</a>" + linkBtn(abs(lessonHref(l)), x.num + " " + l.title) + "</div>";
-            }).join("");
+            }).join("") + (c.pdf ? '<div class="qm-row"><a class="qm-item" href="' + esc(c.pdf.href) + '" target="_blank" rel="noopener">' +
+                   '<span class="qm-num qm-num--lesson" aria-hidden="true">PDF</span><span class="qm-item-text"><span class="qm-item-title">' + esc(c.pdf.title) + '</span>' +
+                   '<span class="qm-item-blurb">' + esc(c.pdf.blurb) + '</span></span>' + ICO.chev + '</a>' + linkBtn(abs(c.pdf.href), c.pdf.title) + '</div>' : "");
     }
     function show(c, focus) {
         if (c) renderChoice(c); else renderHome();

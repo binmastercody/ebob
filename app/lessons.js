@@ -766,6 +766,64 @@
             ]
         ]) });
 
+    /* ============ VESSEL CONFIGURATION (simple, every click spelled out) ============
+       Both lessons change a vessel that is already set up (Cem Silo 2). They do not add one.
+       They also make up the "Binventory 1.0 Vessel Configuration" PDF (tools/build-vessel-pdf.mjs). */
+    var shapeImg = '#backdropAppStack img[src*="vessel-types"]';
+    function pickCemSilo2(why) {
+        return flat([
+            [{ title: "Find the vessel", msg: why, target: vesselTile("v2"), do: "read" }],
+            menu("Vessel", '[data-action="vessel-maintenance"]', "Vessel Maintenance", "Vessel Maintenance",
+                "A window called <b>Vessel Maintenance</b> opens with a list of every vessel."),
+            [
+            { title: "Click the vessel in the list", msg: "Click <b>Cem Silo 2</b> in the list. Its row turns blue.", target: '#backdropApp tr[data-vid="v2"]', do: "click" },
+            { title: "Click Select", msg: "Click the <b>Select</b> button on the right. A window called <b>Vessel Setup</b> opens. It has tabs across the top: Display, Type/Shape, Contents, Sensor, Alarms and Email Notifications.", target: "#vmBtnSelect", do: "click", until: function () { return visible("#vs_name"); } }
+            ]
+        ]);
+    }
+    var saveCloseCheck = function (lastMsg) {
+        return [
+            { title: "Click Save", msg: "Click the <b>Save</b> button at the bottom of the Vessel Setup window. The window closes and your changes are kept. (Cancel closes it without keeping them.)", target: "#vsSave", do: "click", until: function () { return !visible("#vs_name"); } },
+            { title: "Click Close", msg: "You are back on the Vessel Maintenance list. Click the <b>Close</b> button on the right.", target: "#vmBtnClose", do: "click", until: function () { return !win("Vessel Maintenance"); } },
+            { title: "Check the vessel", msg: lastMsg, target: vesselTile("v2"), do: "read" }
+        ];
+    };
+
+    L.push({ id: "vessel-shape", section: "setup", title: "Configure a vessel: size and shape", manual: "5.4.7.2",
+        desc: "Change the shape, straight wall, width and cone of a vessel you already have.",
+        outro: "The vessel now has the right shape and size, so its volume and weight are worked out from the right numbers.",
+        steps: flat([
+            pickCemSilo2("This lesson changes the size and shape of a vessel that is already set up. It does not add a new one. We will fix <b>Cem Silo 2</b>. Press <b>Next</b> to start."),
+            [
+            { title: "Click the Type/Shape tab", msg: "Click the <b>Type/Shape</b> tab at the top of the Vessel Setup window.", target: vsTab("typeshape"), do: "click", until: vsTabShown("#vs_vessel_type") },
+            { title: "Pick the shape", msg: "Click the <b>Vessel Type</b> list (the box with the small arrow). A list of shapes drops down. Click <b>Vertical Cylinder with Cone</b>. Pick the shape that matches your bin: a round bin with a cone at the bottom is Vertical Cylinder with Cone.", target: "#vs_vessel_type", do: "select", value: "Vertical Cylinder with Cone" },
+            { title: "What the letters mean", msg: "The picture shows what to measure. <b>H</b> is the <b>straight wall</b>: from the top of the wall down to where the cone starts. <b>W</b> is the width across the bin (the diameter). <b>CH</b> is the <b>cone height</b>: from where the cone starts down to the opening. <b>OW</b> is the width of the opening at the bottom. Every number is in feet.", target: shapeImg, do: "read" },
+            { title: "Straight wall (H)", msg: "Click in the <b>Height (H)</b> box. The old number turns blue (selected). Type <b>30</b>. Typing replaces the old number.", target: "#vs_sp_0", do: "type", value: "30" },
+            { title: "Width (W)", msg: "Click in the <b>Width (W)</b> box and type <b>12</b>. This is the distance across the bin.", target: "#vs_sp_1", do: "type", value: "12" },
+            { title: "Cone height (CH)", msg: "Click in the <b>Cone Height (CH)</b> box and type <b>10</b>.", target: "#vs_sp_2", do: "type", value: "10" },
+            { title: "Outlet width (OW)", msg: "Click in the <b>Outlet Width (OW)</b> box and type <b>1</b>. This is the width of the opening at the very bottom of the cone.", target: "#vs_sp_3", do: "type", value: "1" }
+            ],
+            saveCloseCheck("<b>Cem Silo 2</b> is saved with its new shape and size. From the next reading on, Binventory uses them to work out the volume and weight.")
+        ]) });
+
+    L.push({ id: "vessel-contents", section: "setup", title: "Configure the contents (density)", manual: "5.4.7.3",
+        desc: "Set what is in the vessel and how much it weighs per cubic foot.",
+        outro: "Binventory works out weight as volume times density. With the right density from your supplier, the weight on the main screen is right.",
+        steps: flat([
+            pickCemSilo2("This lesson sets what is inside a vessel and its <b>density</b>, so the weight is right. We will fix <b>Cem Silo 2</b>. Press <b>Next</b> to start."),
+            [
+            { title: "Click the Contents tab", msg: "Click the <b>Contents</b> tab at the top of the Vessel Setup window.", target: vsTab("contents"), do: "click", until: vsTabShown("#vs_contents") },
+            { title: "Name the product", msg: "Click in the <b>Contents / Product</b> box and type <b>Fly Ash</b>. This is just the name of what is in the bin.", target: "#vs_contents", do: "type", value: "Fly Ash" },
+            { title: "What is density?", msg: "<b>Density</b> is how much one cubic foot of your material weighs. Binventory measures how much is in the bin (the volume) and multiplies it by the density to get the <b>weight</b>. A wrong density means a wrong weight.", target: "#vs_density_val", do: "read" },
+            { title: "Where to get the density", msg: "Best to worst: <b>1. Ask your supplier</b> (most accurate). <b>2. Weigh a box</b>: fill a 1 ft by 1 ft by 1 ft box with the material and weigh it; the pounds it weighs is the pounds per cubic foot. <b>3. Look it up online</b> (least accurate, only a starting point).", target: "#vs_density_val", do: "read" },
+            { title: "Pick Use Product Density", msg: "Click the round button next to <b>Use Product Density</b> so it has a dot in it.", target: "#vs_den_density", do: "check" },
+            { title: "Density units", msg: "Click the <b>Density Units</b> list and click <b>lbs / cubic ft</b> (pounds per cubic foot). Pick the units your density number is in.", target: "#vs_density_units", do: "select", value: "lbs / cubic ft" },
+            { title: "Type the density", msg: "Click in the box next to <b>Use Product Density</b> and type <b>55</b>. Use the number from your supplier.", target: "#vs_density_val", do: "type", value: "55" },
+            { title: "Or specific gravity", msg: "If your supplier gives you a <b>specific gravity</b> instead, click <b>Use Specific Gravity</b> and type it in that box. Use one or the other, not both. For this lesson, leave it on Use Product Density.", target: "#vs_den_sg", do: "read" }
+            ],
+            saveCloseCheck("Look at <b>Cem Silo 2</b> on the main screen. Its weight is now volume times 55 pounds per cubic foot.")
+        ]) });
+
     L.push({ id: "ts-readings-wrong", section: "trouble", title: "My readings look wrong", manual: "5.4.7.2, 5.4.7.3, 5.4.7.4",
         desc: "Level, volume or weight do not match the vessel.",
         outro: "Volume comes from the vessel type and dimensions, and weight is the volume times the density. The sensor offset shifts every level reading.",
@@ -834,7 +892,7 @@
         ]) });
 
     /* final order inside each section */
-    var ORDER = ["plan", "install", "network-install", "install-import", "tour", "system-setup", "site-setup", "sensor-network", "add-vessel", "more-vessels", "measure",
+    var ORDER = ["plan", "install", "network-install", "install-import", "tour", "system-setup", "site-setup", "sensor-network", "add-vessel", "more-vessels", "vessel-shape", "vessel-contents", "measure",
         "level-alarms", "email-setup", "contacts", "email-alerts",
         "vessel-details", "groups", "schedules", "temporary-group",
         "inventory-report", "history-report", "site-status-report",
